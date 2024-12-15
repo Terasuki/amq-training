@@ -119,6 +119,29 @@ def receive_data():
 def index():
     return redirect('/main')
 
+def get_song_links(row):
+    site_ids = json.loads(row.get('site_ids')[0])
+    
+    links = [
+        {
+            'name': 'AniList',
+            'url': f"https://anilist.co/anime/{site_ids.get('aniListId')}"
+        },
+        {
+            'name': 'MAL',
+            'url': f"https://myanimelist.net/anime/{site_ids.get('malId')}"
+        },
+        {
+            'name': 'Kitsu',
+            'url': f"https://kitsu.io/anime/{site_ids.get('kitsuId')}"
+        },
+        {
+            'name': 'ANN',
+            'url': f"https://www.animenewsnetwork.com/encyclopedia/anime.php?id={site_ids.get('annId')}"
+        }
+    ]
+    return links
+
 def app_description():
     return html.Div(
         id='app-description',
@@ -149,7 +172,11 @@ def last_song_type():
 
 def last_song_links():
     return html.Div(
-        id='last_song_links'
+        id='last_song_links',
+        style={
+            'margin': 'auto',
+            'text-align': 'center'
+        }
     )
 
 def last_song_difficulty():
@@ -167,6 +194,7 @@ def last_song_previously_played():
           Output('last_song_artist', 'children'), 
           Output('last_song_type', 'children'), 
           Output('last_song_difficulty', 'children'), 
+          Output('last_song_links', 'children'), 
           Output('last_song_previously_played', 'children'), 
           Input('interval', 'n_intervals'))
 def update(n):
@@ -174,13 +202,17 @@ def update(n):
     query = 'SELECT * FROM amq_data ORDER BY timestamp DESC LIMIT 1'
     last_song = pd.read_sql_query(query, conn)
     conn.close()
+
+    links = get_song_links(last_song)
     ls_anime = html.P(last_song.romaji_title, style={'margin-left':'3%', 'text-align':'center'})
     ls_song = html.P(last_song.name, style={'margin-left':'3%', 'text-align':'center'})
     ls_artist = html.P(last_song.artist, style={'margin-left':'3%', 'text-align':'center'})
     ls_type = html.P(last_song.type, style={'margin-left':'3%', 'text-align':'center'})
     ls_difficulty = html.P(last_song.difficulty, style={'margin-left':'3%', 'text-align':'center'})
+    ls_song_links = html.P([html.A(link['name'], href=link['url'], target='_blank', style={'margin-left': '15px', 'text-align':'center'}) for link in links])
     ls_previously_played = html.P(last_song.difficulty, style={'margin-left':'3%', 'text-align':'center'})
-    return ls_anime, ls_song, ls_artist, ls_type, ls_difficulty, ls_previously_played
+
+    return ls_anime, ls_song, ls_artist, ls_type, ls_difficulty, ls_song_links, ls_previously_played
 
 dashboard.layout = dbc.Container(
     [
@@ -196,6 +228,7 @@ dashboard.layout = dbc.Container(
             html.P('Type', style={'margin-left':'3%', 'text-align':'center'}),
             last_song_type(),
             html.P('Links', style={'margin-left':'3%', 'text-align':'center'}),
+            last_song_links(),
             html.P('Difficulty', style={'margin-left':'3%', 'text-align':'center'}),
             last_song_difficulty(),
             html.P('Previously played', style={'margin-left':'3%', 'text-align':'center'}),

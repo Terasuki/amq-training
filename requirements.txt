@@ -1,0 +1,7 @@
+pandas
+numpy
+dash
+plotly
+dash-bootstrap-components
+Flask
+flask-cors
