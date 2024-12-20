@@ -58,6 +58,13 @@
         }).bindListener()
     }()
 
+    function cleanAnswer(answer) {
+        if (answer) {
+            return answer.replace(/\s*\(\d+ms\)/, '');
+        }
+        return answer;
+    }
+
     function setup() {
     
         new Listener('answer results', (result) => {
@@ -90,7 +97,8 @@
                         return findPlayer.gamePlayerId === tmpPlayer.gamePlayerId
                     });
                     newSong.correct = result.players[playerIdx].correct;
-                    newSong.selfAnswer = quiz.players[findPlayer.gamePlayerId].avatarSlot.$answerContainerText.text();
+                    let selfAnswer_tmp = quiz.players[findPlayer.gamePlayerId].avatarSlot.$answerContainerText.text();
+                    newSong.selfAnswer = cleanAnswer(selfAnswer_tmp)
                     newSong.guessTime = amqAnswerTimesUtility.playerTimes[findPlayer.gamePlayerId];
                     newSong.position = result.players[playerIdx].position;
                     newSong.rig_type = result.players[playerIdx].listStatus;

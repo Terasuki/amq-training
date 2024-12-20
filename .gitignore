@@ -167,6 +167,7 @@ cython_debug/
 # Data
 *.json
 *.parquet
+*.db
 
 # Test work
 test_*
