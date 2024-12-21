@@ -164,12 +164,21 @@ def get_last_song_matches(row, conn):
 
     matches['Sample'] = matches['start_sample'].apply(format_seconds) + '/' + matches['video_length'].apply(format_seconds)
     matches = matches.drop(['start_sample', 'video_length'], axis=1).rename(columns={'timestamp':'Date', 
-                                                                                     'game_mode':'Gamemode', 
+                                                                                     'game_mode':'Mode', 
                                                                                      'difficulty':'Diff.',
                                                                                      'self_answer':'Answer',
                                                                                      'guess_time':'Guess time',
                                                                                      'ann_id':'ANNID'})
     return matches
+
+def get_previously_correct(matches):
+
+    n_guesses = matches.shape[0]
+    correct_guesses = matches.loc[matches['correct'] == 1].shape[0]
+    spec_matches = matches.loc[(matches['correct'] == None) | ((matches['Guess time'] == None) & (matches['Answer'] == '\n\t\t\t\t\t\n\t\t\t\t'))]
+    spec_guesses = spec_matches.shape[0]
+    wrong_guesses = n_guesses - correct_guesses - spec_guesses
+    return correct_guesses, wrong_guesses, spec_guesses
 
 def app_description():
     return html.Div(
@@ -213,6 +222,15 @@ def last_song_difficulty():
         id='last_song_difficulty'
     )
 
+def last_song_previously_correct():
+    return html.Div(
+        id='last_song_previously_correct',
+        style={
+            'margin': 'auto',
+            'text-align': 'center'
+        }
+    )
+
 def last_song_previously_played():
     return html.Div(
         dash_table.DataTable(
@@ -238,13 +256,27 @@ def last_song_previously_played():
                         'filter_query': '{correct} = 1',
                     },
                     'backgroundColor': 'green',
-                    'color': 'black'
+                    'color': 'white'
                 },
                 {
                     'if': {
                         'filter_query': '{correct} = 0',
                     },
                     'backgroundColor': 'red',
+                    'color': 'white'
+                },
+                {
+                    'if': {
+                        'filter_query': '{correct} is nil',
+                    },
+                    'backgroundColor': 'gray',
+                    'color': 'white'
+                },
+                {
+                    'if': {
+                        'filter_query': '{Guess time} is nil && {Answer} is blank',
+                    },
+                    'backgroundColor': 'gray',
                     'color': 'white'
                 },
                 {'if': {'column_id': 'correct',},
@@ -266,6 +298,7 @@ def last_song_previously_played():
           Output('last_song_type', 'children'), 
           Output('last_song_difficulty', 'children'), 
           Output('last_song_links', 'children'), 
+          Output('last_song_previously_correct', 'children'), 
           Output('last_song_previously_played', 'columns'), 
           Output('last_song_previously_played', 'data'), 
           Input('interval', 'n_intervals'))
@@ -283,15 +316,21 @@ def update(n):
     ls_type = html.P(last_song.type, style={'margin-left':'3%', 'text-align':'center'})
     ls_difficulty = html.P(last_song.difficulty, style={'margin-left':'3%', 'text-align':'center'})
     ls_song_links = html.P([html.A(link['name'], href=link['url'], target='_blank', style={'margin-left': '15px', 'text-align':'center'}) for link in links])
+    correct_guesses, wrong_guesses, spec_guesses = get_previously_correct(ls_matches)
+    ls_previously_correct = html.P(children=[html.Span(correct_guesses, style={'color':'green'}), 
+                                             '/',
+                                             html.Span(wrong_guesses, style={'color':'red'}),
+                                             '/',
+                                             html.Span(spec_guesses, style={'color':'gray'})], style={'margin-left':'3%', 'text-align':'center'})
     ls_matches_data = ls_matches.to_dict('records')
     ls_matches_columns = [{'name': col, 'id': col} for col in ls_matches.columns]
 
-    return ls_anime, ls_song, ls_artist, ls_type, ls_difficulty, ls_song_links, ls_matches_columns, ls_matches_data
+    return ls_anime, ls_song, ls_artist, ls_type, ls_difficulty, ls_song_links, ls_previously_correct, ls_matches_columns, ls_matches_data
 
 dashboard.layout = dbc.Container(
     [
         dbc.Col(children=[
-            html.H2('Last Song Played', style={'text-align': 'center'},),
+            html.H2('Last Song Played', style={'text-align': 'center'}),
             html.Hr(),
             html.P('Anime', style={'margin-left':'3%', 'text-align':'center'}),
             last_song_anime(),
@@ -306,6 +345,7 @@ dashboard.layout = dbc.Container(
             html.P('Difficulty', style={'margin-left':'3%', 'text-align':'center'}),
             last_song_difficulty(),
             html.P('Previously played', style={'margin-left':'3%', 'text-align':'center'}),
+            last_song_previously_correct(),   
             last_song_previously_played(),
         ], style={
             'position':'fixed',
@@ -323,7 +363,7 @@ dashboard.layout = dbc.Container(
         }),
         dcc.Interval(
             id='interval',
-            interval=500, # in milliseconds
+            interval=500,
             n_intervals=0
         )
     ]
