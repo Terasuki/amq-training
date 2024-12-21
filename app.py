@@ -21,7 +21,7 @@ dashboard = Dash(
     __name__,
     server=app,
     url_base_pathname='/main/',
-    external_stylesheets=[dbc.themes.DARKLY],
+    external_stylesheets=[dbc.themes.SLATE],
     update_title=None
 )
 
@@ -169,6 +169,8 @@ def get_last_song_matches(row, conn):
                                                                                      'self_answer':'Answer',
                                                                                      'guess_time':'Guess time',
                                                                                      'ann_id':'ANNID'})
+    
+    matches = matches[['Date', 'Mode', 'ANNID', 'Diff.', 'Guess time', 'Answer', 'correct']]
     return matches
 
 def get_previously_correct(matches):
@@ -237,10 +239,12 @@ def last_song_previously_played():
             id='last_song_previously_played',
             columns=[],
             data=[],
+            style_as_list_view=True,
             style_table={
                 'width': '100%', 
                 'overflowX': 'auto',
-                'overflowY': 'auto'
+                'overflowY': 'auto',
+                'border': 'thin lightgrey solid',
             },
             style_cell={
                 'textAlign': 'center',
@@ -310,64 +314,64 @@ def update(n):
     conn.close()
 
     links = get_song_links(last_song)
-    ls_anime = html.P(last_song.romaji_title, style={'margin-left':'3%', 'text-align':'center'})
-    ls_song = html.P(last_song.name, style={'margin-left':'3%', 'text-align':'center'})
-    ls_artist = html.P(last_song.artist, style={'margin-left':'3%', 'text-align':'center'})
-    ls_type = html.P(last_song.type, style={'margin-left':'3%', 'text-align':'center'})
-    ls_difficulty = html.P(last_song.difficulty, style={'margin-left':'3%', 'text-align':'center'})
-    ls_song_links = html.P([html.A(link['name'], href=link['url'], target='_blank', style={'margin-left': '15px', 'text-align':'center'}) for link in links])
+    ls_anime = html.P(last_song.romaji_title, style={'text-align':'center'}, className='card-text')
+    ls_song = html.P(last_song.name, style={'text-align':'center'}, className='card-text')
+    ls_artist = html.P(last_song.artist, style={'text-align':'center'}, className='card-text')
+    ls_type = html.P(last_song.type, style={'text-align':'center'}, className='card-text')
+    ls_difficulty = html.P(last_song.difficulty, style={'text-align':'center'}, className='card-text')
+    ls_song_links = html.P([html.A(link['name'], href=link['url'], target='_blank', style={'margin-left': '7px', 'margin-right': '7px', 'text-align':'center'}) for link in links], className='card-text')
     correct_guesses, wrong_guesses, spec_guesses = get_previously_correct(ls_matches)
     ls_previously_correct = html.P(children=[html.Span(correct_guesses, style={'color':'green'}), 
                                              '/',
                                              html.Span(wrong_guesses, style={'color':'red'}),
                                              '/',
-                                             html.Span(spec_guesses, style={'color':'gray'})], style={'margin-left':'3%', 'text-align':'center'})
+                                             html.Span(spec_guesses, style={'color':'gray'})], style={'text-align':'center'}, className='card-text')
     ls_matches_data = ls_matches.to_dict('records')
     ls_matches_columns = [{'name': col, 'id': col} for col in ls_matches.columns]
 
     return ls_anime, ls_song, ls_artist, ls_type, ls_difficulty, ls_song_links, ls_previously_correct, ls_matches_columns, ls_matches_data
 
-dashboard.layout = dbc.Container(
-    [
-        dbc.Col(children=[
-            html.H2('Last Song Played', style={'text-align': 'center'}),
-            html.Hr(),
-            html.P('Anime', style={'margin-left':'3%', 'text-align':'center'}),
-            last_song_anime(),
-            html.P('Song', style={'margin-left':'3%', 'text-align':'center'}),
+dashboard.layout = dbc.Container(children=[
+
+            html.H2('Last Song', style={'text-align': 'center'}),
+
+            dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
+                html.H5('Anime', style={'text-align':'center'}, className='card-title'),
+                last_song_anime(),
+            ]), className="shadow-sm mb-1",))),
+            dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
+            html.H5('Song', style={'text-align':'center'}, className='card-title'),
             last_song_song(),
-            html.P('Artist', style={'margin-left':'3%', 'text-align':'center'}),
+            ]), className="shadow-sm mb-1",))),
+            dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
+            html.H5('Artist', style={'text-align':'center'}, className='card-title'),
             last_song_artist(),
-            html.P('Type', style={'margin-left':'3%', 'text-align':'center'}),
+            ]), className="shadow-sm mb-1",))),
+            dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
+            html.H5('Type', style={'text-align':'center'}, className='card-title'),
             last_song_type(),
-            html.P('Links', style={'margin-left':'3%', 'text-align':'center'}),
+            ]), className="shadow-sm mb-1",))),
+            dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
+            html.H5('Links', style={'text-align':'center'}, className='card-title'),
             last_song_links(),
-            html.P('Difficulty', style={'margin-left':'3%', 'text-align':'center'}),
+            ]), className="shadow-sm mb-1",))),
+            dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
+            html.H5('Difficulty', style={'text-align':'center'}, className='card-title'),
             last_song_difficulty(),
-            html.P('Previously played', style={'margin-left':'3%', 'text-align':'center'}),
+            ]), className="shadow-sm mb-1",))),
+            dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
+            html.H5('History', style={'text-align':'center'}, className='card-title'),
             last_song_previously_correct(),   
             last_song_previously_played(),
+            ]), className="shadow-sm mb-1",))),
+            dcc.Interval(
+                id='interval',
+                interval=500,
+                n_intervals=0
+            )
         ], style={
-            'position':'fixed',
-            'left':'0',
-            'width':'30%',
-            'height':'100%',
-            'background-color':'#B8B8B8'
+            'padding': '0.5em'
         }),
-        dbc.Col([
-            app_description(),
-        ], style={
-            'width':'70%',
-            'float':'right',
-            'margin-top':'10px'
-        }),
-        dcc.Interval(
-            id='interval',
-            interval=500,
-            n_intervals=0
-        )
-    ]
-)
 
 if __name__ == '__main__':
 
