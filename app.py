@@ -15,13 +15,15 @@ from flask_cors import cross_origin
 from dash import Dash, html, dcc, callback, Output, Input, dash_table
 from dash_bootstrap_templates import load_figure_template
 
+from utilities import get_song_links, get_last_song_matches, get_previously_correct
+
 app = Flask(__name__)
 
 dashboard = Dash(
     __name__,
     server=app,
     url_base_pathname='/main/',
-    external_stylesheets=[dbc.themes.SLATE],
+    external_stylesheets=[dbc.themes.SLATE, '/assets/styles.css'],
     update_title=None
 )
 
@@ -120,67 +122,6 @@ def receive_data():
 @app.route('/')
 def index():
     return redirect('/main')
-
-def get_song_links(row):
-    site_ids = json.loads(row.get('site_ids')[0])
-    
-    links = [
-        {
-            'name': 'AniList',
-            'url': f"https://anilist.co/anime/{site_ids.get('aniListId')}"
-        },
-        {
-            'name': 'MAL',
-            'url': f"https://myanimelist.net/anime/{site_ids.get('malId')}"
-        },
-        {
-            'name': 'Kitsu',
-            'url': f"https://kitsu.io/anime/{site_ids.get('kitsuId')}"
-        },
-        {
-            'name': 'ANN',
-            'url': f"https://www.animenewsnetwork.com/encyclopedia/anime.php?id={site_ids.get('annId')}"
-        }
-    ]
-    return links
-
-def get_last_song_matches(row, conn):
-
-    def format_seconds(seconds_raw):
-        minutes = int(seconds_raw // 60)
-        seconds = int(seconds_raw % 60)
-        return f'{minutes}:{seconds:02}' 
-
-    song_name = row['name'][0]
-    song_artist = row['artist'][0]
-    matches_query = """
-            SELECT timestamp, game_mode, difficulty, self_answer, guess_time, start_sample, video_length, ann_id, correct
-            FROM amq_data 
-            WHERE name = ? AND artist = ?
-            ORDER BY timestamp
-        """
-    matches = pd.read_sql_query(matches_query, conn, params=(song_name, song_artist))
-    matches['timestamp'] = pd.to_datetime(matches['timestamp']).dt.strftime('%d/%m/%y, %H:%M')
-
-    matches['Sample'] = matches['start_sample'].apply(format_seconds) + '/' + matches['video_length'].apply(format_seconds)
-    matches = matches.drop(['start_sample', 'video_length'], axis=1).rename(columns={'timestamp':'Date', 
-                                                                                     'game_mode':'Mode', 
-                                                                                     'difficulty':'Diff.',
-                                                                                     'self_answer':'Answer',
-                                                                                     'guess_time':'Guess time',
-                                                                                     'ann_id':'ANNID'})
-    
-    matches = matches[['Date', 'Mode', 'ANNID', 'Diff.', 'Guess time', 'Answer', 'correct']]
-    return matches
-
-def get_previously_correct(matches):
-
-    n_guesses = matches.shape[0]
-    correct_guesses = matches.loc[matches['correct'] == 1].shape[0]
-    spec_matches = matches.loc[(matches['correct'] == None) | ((matches['Guess time'] == None) & (matches['Answer'] == '\n\t\t\t\t\t\n\t\t\t\t'))]
-    spec_guesses = spec_matches.shape[0]
-    wrong_guesses = n_guesses - correct_guesses - spec_guesses
-    return correct_guesses, wrong_guesses, spec_guesses
 
 def app_description():
     return html.Div(
@@ -340,29 +281,29 @@ dashboard.layout = dbc.Container(children=[
                 last_song_anime(),
             ]), className="shadow-sm mb-1",))),
             dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
-            html.H5('Song', style={'text-align':'center'}, className='card-title'),
-            last_song_song(),
+                html.H5('Song', style={'text-align':'center'}, className='card-title'),
+                last_song_song(),
             ]), className="shadow-sm mb-1",))),
             dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
-            html.H5('Artist', style={'text-align':'center'}, className='card-title'),
-            last_song_artist(),
+                html.H5('Artist', style={'text-align':'center'}, className='card-title'),
+                last_song_artist(),
             ]), className="shadow-sm mb-1",))),
             dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
-            html.H5('Type', style={'text-align':'center'}, className='card-title'),
-            last_song_type(),
+                html.H5('Type', style={'text-align':'center'}, className='card-title'),
+                last_song_type(),
             ]), className="shadow-sm mb-1",))),
             dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
-            html.H5('Links', style={'text-align':'center'}, className='card-title'),
-            last_song_links(),
+                html.H5('Links', style={'text-align':'center'}, className='card-title'),
+                last_song_links(),
             ]), className="shadow-sm mb-1",))),
             dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
-            html.H5('Difficulty', style={'text-align':'center'}, className='card-title'),
-            last_song_difficulty(),
+                html.H5('Difficulty', style={'text-align':'center'}, className='card-title'),
+                last_song_difficulty(),
             ]), className="shadow-sm mb-1",))),
             dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
-            html.H5('History', style={'text-align':'center'}, className='card-title'),
-            last_song_previously_correct(),   
-            last_song_previously_played(),
+                html.H5('History', style={'text-align':'center'}, className='card-title'),
+                last_song_previously_correct(),   
+                last_song_previously_played(),
             ]), className="shadow-sm mb-1",))),
             dcc.Interval(
                 id='interval',
