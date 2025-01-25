@@ -1,9 +1,12 @@
 import json
 import pandas as pd
 import sqlite3
+import math
 from typing import List, Dict, Tuple
 
 def format_seconds(seconds_raw: float) -> str:
+        if seconds_raw is None or math.isnan(seconds_raw):
+            return "0:00"
         minutes = int(seconds_raw // 60)
         seconds = int(seconds_raw % 60)
         return f'{minutes}:{seconds:02}' 
@@ -64,3 +67,21 @@ def get_previously_correct(matches: pd.DataFrame) -> Tuple[int, int, int]:
     spec_guesses = spec_matches.shape[0]
     wrong_guesses = n_guesses - correct_guesses - spec_guesses
     return correct_guesses, wrong_guesses, spec_guesses
+
+def clean_full_data(raw_data: pd.DataFrame) -> pd.DataFrame:
+
+    raw_data['timestamp'] = pd.to_datetime(raw_data['timestamp']).dt.strftime('%d/%m/%y, %H:%M')
+    raw_data['Sample'] = raw_data['start_sample'].apply(format_seconds) + '/' + raw_data['video_length'].apply(format_seconds)
+    raw_data = raw_data.drop(['start_sample', 'video_length'], axis=1).rename(columns={'timestamp':'Date',
+                                                                                     'name':'Song name',
+                                                                                     'artist':'Artist', 
+                                                                                     'type':'Type',
+                                                                                     'anime_type':'Anime Type',
+                                                                                     'vintage':'Vintage',
+                                                                                     'romaji_title':'Anime',
+                                                                                     'game_mode':'Mode', 
+                                                                                     'difficulty':'Diff.',
+                                                                                     'self_answer':'Answer',
+                                                                                     'guess_time':'Guess time',
+                                                                                     'ann_id':'ANNID'})
+    return raw_data
