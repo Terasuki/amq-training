@@ -4,10 +4,11 @@ import webbrowser
 
 from datetime import datetime
 from threading import Timer
+from typing import Tuple
 
 import dash_bootstrap_components as dbc
 
-from flask import Flask, request, jsonify, redirect
+from flask import Flask, request, jsonify, redirect, Response
 from flask_cors import cross_origin
 from dash import Dash, html, page_container, callback, Input, Output
 from dash_bootstrap_templates import load_figure_template
@@ -26,12 +27,17 @@ dashboard = Dash(
 dashboard.title = 'AMQ Song List'
 load_figure_template('DARKLY')
 
-def open_browser():
-
+def open_browser() -> None:
+    """
+    Function to start the game and the dashboard.
+    """
     webbrowser.open_new('http://127.0.0.1:8888/main/')
     webbrowser.open_new_tab('https://animemusicquiz.com/')
 
 def init_db():
+    """
+    Function to start a database table if one does not exist yet.
+    """
     conn = sqlite3.connect('data.db')
     cursor = conn.cursor()
     cursor.execute('''
@@ -67,7 +73,15 @@ def init_db():
 
 @app.route('/', methods=['POST'])
 @cross_origin(origin='*')
-def receive_data():
+def receive_data() -> Tuple[Response, int]:
+    """
+    Helper function that receives data from the Tampermonkey script and processes it to the database.
+
+    Returns
+    -------
+    response : flask.Response
+    status_code : int
+    """
     data = request.json
     timestamped_data = {
         'timestamp': datetime.now().isoformat(),

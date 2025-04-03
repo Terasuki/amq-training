@@ -5,11 +5,24 @@ import math
 from typing import List, Dict, Tuple
 
 def format_seconds(seconds_raw: float) -> str:
-        if seconds_raw is None or math.isnan(seconds_raw):
-            return "0:00"
-        minutes = int(seconds_raw // 60)
-        seconds = int(seconds_raw % 60)
-        return f'{minutes}:{seconds:02}' 
+    """
+    Formats raw seconds into minutes:seconds format.
+    
+    Parameters
+    ----------
+    seconds_raw : float
+        Raw seconds to be converted.
+    
+    Returns
+    -------
+    time : str
+        The time equivalent in minutes:seconds format.
+    """
+    if seconds_raw is None or math.isnan(seconds_raw):
+        return '0:00'
+    minutes = int(seconds_raw // 60)
+    seconds = int(seconds_raw % 60)
+    return f'{minutes}:{seconds:02}' 
 
 def get_song_links(row: pd.DataFrame) -> List[Dict]:
     site_ids = json.loads(row.get('site_ids')[0])
@@ -56,23 +69,47 @@ def get_last_song_matches(row: pd.DataFrame, conn: sqlite3.Connection) -> pd.Dat
                                                                                      'guess_time':'Guess time',
                                                                                      'ann_id':'ANNID'})
     
-    matches = matches[['Date', 'Mode', 'ANNID', 'Diff.', 'Guess time', 'Answer', 'correct']]
+    matches = matches[['Date', 'Mode', 'ANNID', 'Diff.', 'Sample', 'Guess time',  'Answer', 'correct']]
     return matches
 
 def get_previously_correct(matches: pd.DataFrame) -> Tuple[int, int, int]:
+    """
+    Finds correctness of user's guesses from a song list in pd.DataFrame form.
 
+    Parameters
+    ----------
+    matches : pd.DataFrame
+        User's guesses.
+    
+    Returns
+    -------
+    correct_guesses : int
+    wrong_guesses : int
+    spec_guesses : int
+    """
     n_guesses = matches.shape[0]
     correct_guesses = matches.loc[matches['correct'] == 1].shape[0]
-    spec_matches = matches.loc[(matches['correct'] == None) | ((matches['Guess time'] == None) & (matches['Answer'] == '\n\t\t\t\t\t\n\t\t\t\t'))]
-    spec_guesses = spec_matches.shape[0]
-    wrong_guesses = n_guesses - correct_guesses - spec_guesses
+    wrong_guesses = matches.loc[(matches['correct'] == 0) & ~(matches['Answer'] == '\n\t\t\t\t\t\n\t\t\t\t')].shape[0]
+    spec_guesses = n_guesses - correct_guesses - wrong_guesses
     return correct_guesses, wrong_guesses, spec_guesses
 
 def clean_full_data(raw_data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Cleans raw data into user-friendly format.
 
+    Parameters
+    ----------
+    raw_data : pd.DataFrame
+        Raw data.
+    
+    Returns
+    -------
+    clean_data : pd.DataFrame
+        Clean data.
+    """
     raw_data['timestamp'] = pd.to_datetime(raw_data['timestamp']).dt.strftime('%d/%m/%y, %H:%M')
     raw_data['Sample'] = raw_data['start_sample'].apply(format_seconds) + '/' + raw_data['video_length'].apply(format_seconds)
-    raw_data = raw_data.drop(['start_sample', 'video_length'], axis=1).rename(columns={'timestamp':'Date',
+    clean_data = raw_data.drop(['start_sample', 'video_length'], axis=1).rename(columns={'timestamp':'Date',
                                                                                      'name':'Song name',
                                                                                      'artist':'Artist', 
                                                                                      'type':'Type',
@@ -84,4 +121,4 @@ def clean_full_data(raw_data: pd.DataFrame) -> pd.DataFrame:
                                                                                      'self_answer':'Answer',
                                                                                      'guess_time':'Guess time',
                                                                                      'ann_id':'ANNID'})
-    return raw_data
+    return clean_data
