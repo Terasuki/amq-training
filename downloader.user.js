@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Traning Bot
 // @namespace    https://github.com/Terasuki
-// @version      1.0
+// @version      1.1
 // @description  Sends song data after answer reveal to local server.
 // @author       Terasuki
 // @match        https://*.animemusicquiz.com/*
@@ -24,39 +24,19 @@
         }
     }, 500);
 
-    // From: https://github.com/amq-script-project/AMQ-Scripts/blob/master/gameplay/amqAnswerTimesUtility.user.js; exact copy.
-    const amqAnswerTimesUtility = new function() {
-        this.songStartTime = 0
-        this.playerTimes = []
-        if (typeof(Listener) === "undefined") {
-            return
+    // Code from kempanator: https://github.com/kempanator/amq-scripts/raw/refs/heads/main/amqAnswerStats.user.js
+    let answerTimes = {};
+    new Listener("play next song", () => {
+        answerTimes = {};
+    }).bindListener()
+
+    new Listener("player answered", (data) => {
+        for (const item of data) {
+            for (const id of item.gamePlayerIds) {
+                answerTimes[id] = Math.floor(item.answerTime * 1000);
+            }
         }
-        new Listener("play next song", () => {
-            this.songStartTime = Date.now()
-            this.playerTimes = []
-        }).bindListener()
-        
-        new Listener("player answered", (data) => {
-            const time = Date.now() - this.songStartTime
-            data.forEach(gamePlayerId => {
-                this.playerTimes[gamePlayerId] = time
-            })
-        }).bindListener()
-        
-        new Listener("Join Game", (data) => {
-            const quizState = data.quizState
-            if (quizState) {
-                this.songStartTime = Date.now() - quizState.songTimer * 1000
-            }
-        }).bindListener()
-    
-        new Listener("Spectate Game", (data) => {
-            const quizState = data.quizState
-            if (quizState) {
-                this.songStartTime = Date.now() - quizState.songTimer * 1000
-            }
-        }).bindListener()
-    }()
+    }).bindListener();
 
     function cleanAnswer(answer) {
         if (answer) {
@@ -99,7 +79,7 @@
                     newSong.correct = result.players[playerIdx].correct;
                     let selfAnswer_tmp = quiz.players[findPlayer.gamePlayerId].avatarSlot.$answerContainerText.text();
                     newSong.selfAnswer = cleanAnswer(selfAnswer_tmp)
-                    newSong.guessTime = amqAnswerTimesUtility.playerTimes[findPlayer.gamePlayerId];
+                    newSong.guessTime = answerTimes[findPlayer.gamePlayerId] ?? null;
                     newSong.position = result.players[playerIdx].position;
                     newSong.rig_type = result.players[playerIdx].listStatus;
                     newSong.rig_score = (result.players[playerIdx].showScore !== 0 && result.players[playerIdx].showScore !== null) ? result.players[playerIdx].showScore : null;
