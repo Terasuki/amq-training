@@ -128,7 +128,7 @@ def update(n):
     conn = sqlite3.connect("data.db")
     query = "SELECT * FROM amq_data ORDER BY timestamp DESC LIMIT 1"
     last_song = pd.read_sql_query(query, conn)
-    ls_matches = get_last_song_matches(last_song, conn)
+    ls_matches, alt_answers = get_last_song_matches(last_song, conn)
     conn.close()
 
     links = get_song_links(last_song)
@@ -196,106 +196,108 @@ layout = (
         children=[
             html.H2("Last Song", style={"text-align": "center"}),
             dbc.Row(
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.H5(
-                                    "Anime",
-                                    style={"text-align": "center"},
-                                    className="card-title",
-                                ),
-                                last_song_anime(),
-                            ]
+                [
+                    dbc.Col(
+                        dbc.Card(
+                            dbc.CardBody(
+                                [
+                                    html.H5(
+                                        "Anime",
+                                        style={"text-align": "center"},
+                                        className="card-title",
+                                    ),
+                                    last_song_anime(),
+                                ]
+                            ),
+                            className="shadow-sm mb-1",
                         ),
-                        className="shadow-sm mb-1",
-                    )
-                )
+                        width=4,
+                    ),
+                    dbc.Col(
+                        dbc.Card(
+                            dbc.CardBody(
+                                [
+                                    html.H5(
+                                        "Song",
+                                        style={"text-align": "center"},
+                                        className="card-title",
+                                    ),
+                                    last_song_song(),
+                                ]
+                            ),
+                            className="shadow-sm mb-1",
+                        ),
+                        width=4,
+                    ),
+                    dbc.Col(
+                        dbc.Card(
+                            dbc.CardBody(
+                                [
+                                    html.H5(
+                                        "Artist",
+                                        style={"text-align": "center"},
+                                        className="card-title",
+                                    ),
+                                    last_song_artist(),
+                                ]
+                            ),
+                            className="shadow-sm mb-1",
+                        ),
+                        width=4,
+                    ),
+                ]
             ),
             dbc.Row(
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.H5(
-                                    "Song",
-                                    style={"text-align": "center"},
-                                    className="card-title",
-                                ),
-                                last_song_song(),
-                            ]
+                [
+                    dbc.Col(
+                        dbc.Card(
+                            dbc.CardBody(
+                                [
+                                    html.H5(
+                                        "Type",
+                                        style={"text-align": "center"},
+                                        className="card-title",
+                                    ),
+                                    last_song_type(),
+                                ]
+                            ),
+                            className="shadow-sm mb-1",
                         ),
-                        className="shadow-sm mb-1",
-                    )
-                )
-            ),
-            dbc.Row(
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.H5(
-                                    "Artist",
-                                    style={"text-align": "center"},
-                                    className="card-title",
-                                ),
-                                last_song_artist(),
-                            ]
+                        width=4,
+                    ),
+                    dbc.Col(
+                        dbc.Card(
+                            dbc.CardBody(
+                                [
+                                    html.H5(
+                                        "Links",
+                                        style={"text-align": "center"},
+                                        className="card-title",
+                                    ),
+                                    last_song_links(),
+                                ]
+                            ),
+                            className="shadow-sm mb-1",
                         ),
-                        className="shadow-sm mb-1",
-                    )
-                )
-            ),
-            dbc.Row(
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.H5(
-                                    "Type",
-                                    style={"text-align": "center"},
-                                    className="card-title",
-                                ),
-                                last_song_type(),
-                            ]
+                        width=4,
+                    ),
+                    dbc.Col(
+                        dbc.Card(
+                            dbc.CardBody(
+                                [
+                                    html.H5(
+                                        "Difficulty",
+                                        style={"text-align": "center"},
+                                        className="card-title",
+                                    ),
+                                    last_song_difficulty(),
+                                ]
+                            ),
+                            className="shadow-sm mb-1",
                         ),
-                        className="shadow-sm mb-1",
-                    )
-                )
-            ),
-            dbc.Row(
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.H5(
-                                    "Links",
-                                    style={"text-align": "center"},
-                                    className="card-title",
-                                ),
-                                last_song_links(),
-                            ]
-                        ),
-                        className="shadow-sm mb-1",
-                    )
-                )
-            ),
-            dbc.Row(
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.H5(
-                                    "Difficulty",
-                                    style={"text-align": "center"},
-                                    className="card-title",
-                                ),
-                                last_song_difficulty(),
-                            ]
-                        ),
-                        className="shadow-sm mb-1",
-                    )
-                )
+                        width=4,
+                    ),
+                ]
             ),
             dbc.Row(
                 dbc.Col(
@@ -312,11 +314,14 @@ layout = (
                             ]
                         ),
                         className="shadow-sm mb-1",
-                    )
+                    ),
+                    width=12,
                 )
             ),
             dcc.Interval(id="interval", interval=500, n_intervals=0),
         ],
-        style={"padding": "0.5em"},
+        style={
+            "padding": "0.5em",
+        },
     ),
 )

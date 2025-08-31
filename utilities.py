@@ -52,14 +52,14 @@ def get_last_song_matches(row: pd.DataFrame, conn: sqlite3.Connection) -> pd.Dat
     song_name = row["name"][0]
     song_artist = row["artist"][0]
     matches_query = """
-            SELECT timestamp, game_mode, difficulty, self_answer, guess_time, start_sample, video_length, ann_id, correct
+            SELECT timestamp, game_mode, difficulty, self_answer, guess_time, start_sample, video_length, ann_id, correct, alt_answers
             FROM amq_data 
             WHERE name = ? AND artist = ?
             ORDER BY timestamp DESC
         """
     matches = pd.read_sql_query(matches_query, conn, params=(song_name, song_artist))
     matches["timestamp"] = pd.to_datetime(matches["timestamp"]).dt.strftime(
-        "%d/%m/%y, %H:%M"
+        "%Y/%m/%d, %H:%M"
     )
 
     matches["Sample"] = (
@@ -77,11 +77,12 @@ def get_last_song_matches(row: pd.DataFrame, conn: sqlite3.Connection) -> pd.Dat
             "ann_id": "ANNID",
         }
     )
-
+    alt_answers = matches.iloc[-1]["alt_answers"]
     matches = matches[
         ["Date", "Mode", "ANNID", "Diff.", "Sample", "Guess time", "Answer", "correct"]
     ]
-    return matches
+
+    return matches, alt_answers
 
 
 def get_previously_correct(matches: pd.DataFrame) -> Tuple[int, int, int]:
@@ -123,7 +124,7 @@ def clean_full_data(raw_data: pd.DataFrame) -> pd.DataFrame:
         Clean data.
     """
     raw_data["timestamp"] = pd.to_datetime(raw_data["timestamp"]).dt.strftime(
-        "%d/%m/%y, %H:%M"
+        "%Y/%m/%d, %H:%M"
     )
     raw_data["Sample"] = (
         raw_data["start_sample"].apply(format_seconds)

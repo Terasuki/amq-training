@@ -3,7 +3,17 @@ import pandas as pd
 
 import dash_bootstrap_components as dbc
 
-from dash import html, dcc, callback, Output, Input, dash_table, register_page
+from dash import (
+    html,
+    dcc,
+    callback,
+    Output,
+    Input,
+    dash_table,
+    register_page,
+    no_update,
+    State,
+)
 
 from utilities import clean_full_data
 
@@ -17,7 +27,7 @@ def main_table():
             columns=[],
             data=[],
             sort_action="native",
-            sort_mode="multi",
+            sort_mode="single",
             page_action="native",
             page_size=50,
             style_as_list_view=True,
@@ -78,6 +88,7 @@ def main_table():
                     "display": "None",
                 }
             ],
+            style_data={"cursor": "pointer"},
         ),
         style={"margin": "auto", "text-align": "center"},
     )
@@ -103,10 +114,31 @@ def update(n):
     return table_columns, table_data
 
 
+@callback(
+    Output("selected-song", "data"),
+    Output("row-click-redirect", "pathname"),
+    Input("main_table", "active_cell"),
+    State("main_table", "data"),
+    State("main_table", "page_current"),
+    prevent_initial_call=True,
+)
+def row_click(active_cell, data, page_current):
+    if active_cell:
+        page_size = 50
+        row_index = active_cell["row"]
+        current_page_index = page_current if page_current is not None else 0
+        absolute_row_index = (current_page_index * page_size) + row_index
+        song = data[absolute_row_index]["Song name"]
+        artist = data[absolute_row_index]["Artist"]
+        return {"name": song, "artist": artist}, "/main/song-details"
+    return no_update, no_update
+
+
 layout = dbc.Container(
     children=[
         html.H2("All songs", style={"text-align": "center"}),
         main_table(),
         dcc.Interval(id="interval", interval=5 * 6000, n_intervals=0),
+        dcc.Location(id="row-click-redirect", refresh=True),
     ]
 )

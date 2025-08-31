@@ -9,7 +9,7 @@ import dash_bootstrap_components as dbc
 
 from flask import Flask, request, jsonify, redirect, Response
 from flask_cors import cross_origin
-from dash import Dash, html, page_container
+from dash import Dash, html, page_container, dcc
 from dash_bootstrap_templates import load_figure_template
 
 app = Flask(__name__)
@@ -143,8 +143,9 @@ dropdown = html.Div(
             ],
             label="Navigation",
         ),
+        dcc.Store(id="selected-song", storage_type="session"),
     ],
-    style={"margin": "auto", "text-align": "center"},
+    style={"margin": "auto", "text-align": "left"},
 )
 
 dashboard.layout = html.Div([dropdown, page_container])
