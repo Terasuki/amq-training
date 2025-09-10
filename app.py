@@ -138,6 +138,7 @@ dropdown = html.Div(
     [
         dbc.DropdownMenu(
             [
+                dbc.DropdownMenuItem("Home", href="/main/"),
                 dbc.DropdownMenuItem("Last Song", href="/main/last-song"),
                 dbc.DropdownMenuItem("All Songs", href="/main/all-songs"),
             ],
