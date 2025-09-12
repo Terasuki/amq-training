@@ -2,137 +2,149 @@ from dash import html, register_page, Input, Output, callback, dcc
 import dash_bootstrap_components as dbc
 import pandas as pd
 import sqlite3
-
+import plotly.express as px
 
 register_page(__name__, path="/")
 
 
-def songs_played():
-    return html.Div(id="songs_played")
-
-
-def guess_rate():
-    return html.Div(id="guess_rate")
-
-
-def guess_time():
-    return html.Div(id="guess_time")
-
-
-def songs_spec():
-    return html.Div(
-        id="songs_spec",
+def make_card(title, content_id):
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.H6(title, style={"textAlign": "center"}, className="card-title"),
+                html.Div(
+                    id=content_id,
+                    style={
+                        "textAlign": "center",
+                        "fontSize": "1.25em",
+                        "fontWeight": "bold",
+                    },
+                ),
+            ]
+        ),
+        className="shadow-sm mb-3",
     )
+
+
+layout = dbc.Container(
+    [
+        html.H2("Home", style={"textAlign": "center", "marginBottom": "1em"}),
+        dbc.Row(
+            [
+                dbc.Col(make_card("Songs Recorded", "songs_played"), width=2),
+                dbc.Col(make_card("Guess Rate", "guess_rate"), width=2),
+                dbc.Col(make_card("Average Guess Time", "guess_time"), width=2),
+                dbc.Col(make_card("Fastest Guess", "fastest_guess"), width=2),
+                dbc.Col(make_card("Songs Spectated", "songs_spec"), width=2),
+            ],
+            justify="center",
+        ),
+        dbc.Row(
+            [
+                dbc.Col(dcc.Graph(id="correct_incorrect_chart"), width=6),
+                dbc.Col(dcc.Graph(id="guess_time_difficulty_chart"), width=6),
+            ]
+        ),
+        dbc.Row(dbc.Col(dcc.Graph(id="songs_over_time_chart"), width=12)),
+        dcc.Interval(id="interval", interval=5000, n_intervals=0),
+    ],
+    fluid=True,
+    style={"padding": "1em"},
+)
+
 
 @callback(
     Output("songs_played", "children"),
     Output("guess_rate", "children"),
     Output("guess_time", "children"),
+    Output("fastest_guess", "children"),
     Output("songs_spec", "children"),
+    Output("correct_incorrect_chart", "figure"),
+    Output("guess_time_difficulty_chart", "figure"),
+    Output("songs_over_time_chart", "figure"),
     Input("interval", "n_intervals"),
 )
-def update(n):
+def update_dashboard(n):
     conn = sqlite3.connect("data.db")
     query = """
-            SELECT timestamp, game_mode, difficulty, guess_time, correct, alt_answers, type, anime_type, vintage, self_answer
-            FROM amq_data 
-            ORDER BY timestamp DESC
-        """
-    data = pd.read_sql_query(query, conn)
+        SELECT timestamp, difficulty, guess_time, correct, self_answer
+        FROM amq_data
+        ORDER BY timestamp ASC
+    """
+    data = pd.read_sql_query(query, conn, parse_dates=["timestamp"])
     conn.close()
-    spec_count = data.loc[data["guess_time"].isna() & data["self_answer"].isna()].shape[0]
-    total_count = data.shape[0]
-    song_count = html.P(total_count-spec_count, style={"text-align": "center"}, className="card-text")
-    guess_time = html.P(f"{data['guess_time'].mean():.2f} ms", style={"text-align": "center"}, className="card-text")
-    guess_rate = html.P(f"{(data['correct'].mean()*100):.2f} %", style={"text-align": "center"}, className="card-text")
-    songs_spec = html.P(spec_count, style={"text-align": "center"}, className="card-text")
 
-    return (
-        song_count,
-        guess_rate,
-        guess_time,
-        songs_spec,
+    spec_count = data.loc[data["guess_time"].isna() & data["self_answer"].isna()].shape[
+        0
+    ]
+    total_count = data.shape[0]
+    songs_played = total_count - spec_count
+
+    avg_guess_time = data["guess_time"].mean()
+    fastest_guess = data["guess_time"].min()
+    guess_rate = data["correct"].mean() * 100
+
+    kpi_songs = f"{songs_played}"
+    kpi_rate = f"{guess_rate:.1f} %"
+    kpi_avg_time = f"{avg_guess_time:.0f} ms"
+    kpi_fastest = f"{fastest_guess:.0f} ms"
+    kpi_spec = f"{spec_count}"
+
+    correct_counts = (
+        data["correct"].value_counts().rename({1: "Correct", 0: "Incorrect"})
+    )
+    pie_fig = px.pie(
+        values=correct_counts.values,
+        names=correct_counts.index,
+        title="Guess Accuracy",
+        color=correct_counts.index,
+        color_discrete_map={"Correct": "green", "Incorrect": "red"},
+    )
+    pie_fig.update_layout(margin=dict(t=40, l=20, r=20, b=20))
+
+    bins = list(range(0, 101, 10))
+    labels = [f"{i}-{i + 10}" for i in bins[:-1]]
+    data["difficulty_bin"] = pd.cut(
+        data["difficulty"], bins=bins, labels=labels, include_lowest=True, right=False
+    )
+    difficulty_time = (
+        data.groupby("difficulty_bin", observed=False)["guess_time"]
+        .mean()
+        .reset_index()
     )
 
-
-layout = (
-    dbc.Container(
-        children=[
-            html.H2("Home", style={"text-align": "center"}),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            dbc.Card(
-                                dbc.CardBody(
-                                    [
-                                        html.H5(
-                                            "Songs recorded",
-                                            style={"text-align": "center"},
-                                            className="card-title",
-                                        ),
-                                        songs_played(),
-                                    ]
-                                ),
-                                className="shadow-sm mb-1",
-                            ),
-                            dbc.Card(
-                                dbc.CardBody(
-                                    [
-                                        html.H5(
-                                            "Artist",
-                                            style={"text-align": "center"},
-                                            className="card-title",
-                                        ),
-                                        guess_rate(),
-                                    ]
-                                ),
-                                className="shadow-sm mb-1",
-                            ),
-                        ],
-                        width=6,
-                    ),
-                    dbc.Col(
-                        dbc.Card(
-                            dbc.CardBody(
-                                [
-                                    html.H5(
-                                        "Average guess time",
-                                        style={"text-align": "center"},
-                                        className="card-title",
-                                    ),
-                                    guess_time(),
-                                ]
-                            ),
-                            className="shadow-sm mb-1",
-                            style={"height": "100%"},
-                        ),
-                        width=6,
-                    ),
-                ]
-            ),
-            dbc.Row(
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.H5(
-                                    "History",
-                                    style={"text-align": "center"},
-                                    className="card-title",
-                                ),
-                                songs_spec(),
-                            ]
-                        ),
-                        className="shadow-sm mb-1",
-                    ),
-                    width=12,
-                )
-            ),
-            dcc.Interval(id="interval", interval=500, n_intervals=0),
-        ],
-        style={
-            "padding": "0.5em",
+    bar_fig = px.bar(
+        difficulty_time,
+        x="difficulty_bin",
+        y="guess_time",
+        title="Guess Time by Difficulty",
+        labels={
+            "guess_time": "Average Guess Time (ms)",
+            "difficulty_bin": "Difficulty",
         },
-    ),
-)
+    )
+    bar_fig.update_layout(margin=dict(t=40, l=20, r=20, b=20))
+
+    daily_counts = (
+        data.set_index("timestamp").resample("D").size().reset_index(name="songs")
+    )
+    line_fig = px.line(
+        daily_counts,
+        x="timestamp",
+        y="songs",
+        title="Songs Played Over Time",
+        labels={"songs": "Songs Played", "timestamp": "Date"},
+    )
+    line_fig.update_traces(mode="lines+markers")
+    line_fig.update_layout(margin=dict(t=40, l=20, r=20, b=20))
+
+    return (
+        kpi_songs,
+        kpi_rate,
+        kpi_avg_time,
+        kpi_fastest,
+        kpi_spec,
+        pie_fig,
+        bar_fig,
+        line_fig,
+    )
