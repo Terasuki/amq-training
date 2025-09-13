@@ -40,10 +40,9 @@ layout = dbc.Container(
         html.H2("Home", style={"textAlign": "center", "marginBottom": "1em"}),
         dbc.Row(
             [
-                dbc.Col(make_card("Songs Recorded", "songs_played"), width=2),
+                dbc.Col(make_card("Songs Played", "songs_played"), width=2),
                 dbc.Col(make_card("Guess Rate", "guess_rate"), width=2),
                 dbc.Col(make_card("Average Guess Time", "guess_time"), width=2),
-                dbc.Col(make_card("Fastest Guess", "fastest_guess"), width=2),
                 dbc.Col(make_card("Songs Spectated", "songs_spec"), width=2),
             ],
             justify="center",
@@ -55,6 +54,12 @@ layout = dbc.Container(
             ]
         ),
         dbc.Row(dbc.Col(dcc.Graph(id="songs_over_time_chart"), width=12)),
+        dbc.Row(
+            [
+                html.H4("Most Common Songs", style={"textAlign": "center", "marginTop": "2em"}),
+                dbc.Col(html.Div(id="common_songs_table"), width=12),
+            ]
+        ),
         dcc.Interval(id="interval", interval=5000, n_intervals=0),
     ],
     fluid=True,
@@ -66,17 +71,17 @@ layout = dbc.Container(
     Output("songs_played", "children"),
     Output("guess_rate", "children"),
     Output("guess_time", "children"),
-    Output("fastest_guess", "children"),
     Output("songs_spec", "children"),
     Output("correct_incorrect_chart", "figure"),
     Output("guess_time_difficulty_chart", "figure"),
     Output("songs_over_time_chart", "figure"),
+    Output("common_songs_table", "children"),
     Input("interval", "n_intervals"),
 )
 def update_dashboard(n):
     conn = sqlite3.connect("data.db")
     query = """
-        SELECT timestamp, difficulty, guess_time, correct, self_answer
+        SELECT timestamp, difficulty, guess_time, correct, self_answer, name, artist
         FROM amq_data
         ORDER BY timestamp ASC
     """
@@ -90,13 +95,11 @@ def update_dashboard(n):
     songs_played = total_count - spec_count
 
     avg_guess_time = data["guess_time"].mean()
-    fastest_guess = data["guess_time"].min()
     guess_rate = data["correct"].mean() * 100
 
     kpi_songs = f"{songs_played}"
     kpi_rate = f"{guess_rate:.1f} %"
     kpi_avg_time = f"{avg_guess_time:.0f} ms"
-    kpi_fastest = f"{fastest_guess:.0f} ms"
     kpi_spec = f"{spec_count}"
 
     data["outcome"] = data.apply(classify, axis=1)
@@ -145,19 +148,45 @@ def update_dashboard(n):
         daily_counts,
         x="timestamp",
         y="songs",
-        title="Songs Played Over Time",
-        labels={"songs": "Songs Played", "timestamp": "Date"},
+        title="Songs Played + Spectated",
+        labels={"songs": "Songs Played + Spectated", "timestamp": "Date"},
     )
     line_fig.update_traces(mode="lines+markers")
     line_fig.update_layout(margin=dict(t=40, l=20, r=20, b=20))
 
+    top_k = 10
+    song_counts = (
+        data.groupby(["name", "artist"])
+        .size()
+        .reset_index(name="count")
+        .sort_values("count", ascending=False)
+        .head(top_k)
+    )
+
+    table_header = [
+    html.Thead(
+        html.Tr([html.Th("Song Name"), html.Th("Artist"), html.Th("Count")])
+    )
+    ]
+    table_body = [
+        html.Tr([html.Td(row["name"]), html.Td(row["artist"]), html.Td(row["count"])])
+        for _, row in song_counts.iterrows()
+    ]
+
+    common_songs_table = dbc.Table(
+        table_header + [html.Tbody(table_body)],
+        bordered=True,
+        striped=True,
+        hover=True,
+        className="mt-3"
+    )
     return (
         kpi_songs,
         kpi_rate,
         kpi_avg_time,
-        kpi_fastest,
         kpi_spec,
         pie_fig,
         bar_fig,
         line_fig,
+        common_songs_table
     )
