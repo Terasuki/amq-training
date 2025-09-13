@@ -7,6 +7,15 @@ import plotly.express as px
 register_page(__name__, path="/")
 
 
+def classify(row):
+    if pd.isna(row["guess_time"]) and pd.isna(row["self_answer"]):
+        return "Spectated"
+    elif row["correct"] == 1:
+        return "Correct"
+    else:
+        return "Incorrect"
+
+
 def make_card(title, content_id):
     return dbc.Card(
         dbc.CardBody(
@@ -90,15 +99,19 @@ def update_dashboard(n):
     kpi_fastest = f"{fastest_guess:.0f} ms"
     kpi_spec = f"{spec_count}"
 
-    correct_counts = (
-        data["correct"].value_counts().rename({1: "Correct", 0: "Incorrect"})
-    )
+    data["outcome"] = data.apply(classify, axis=1)
+    outcome_counts = data["outcome"].value_counts()
+
     pie_fig = px.pie(
-        values=correct_counts.values,
-        names=correct_counts.index,
-        title="Guess Accuracy",
-        color=correct_counts.index,
-        color_discrete_map={"Correct": "green", "Incorrect": "red"},
+        values=outcome_counts.values,
+        names=outcome_counts.index,
+        title="Songs distribution",
+        color=outcome_counts.index,
+        color_discrete_map={
+            "Correct": "green",
+            "Incorrect": "red",
+            "Spectated": "gray",
+        },
     )
     pie_fig.update_layout(margin=dict(t=40, l=20, r=20, b=20))
 
