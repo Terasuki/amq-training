@@ -85,7 +85,9 @@ def get_last_song_matches(row: pd.DataFrame, conn: sqlite3.Connection) -> pd.Dat
     return matches, alt_answers
 
 
-def get_previously_correct(matches: pd.DataFrame) -> Tuple[int, int, int]:
+def get_previously_correct(
+    matches: pd.DataFrame, correct: str = "correct", selfAnswer: str = "Answer"
+) -> Tuple[int, int, int]:
     """
     Finds correctness of user's guesses from a song list in pd.DataFrame form.
 
@@ -101,9 +103,9 @@ def get_previously_correct(matches: pd.DataFrame) -> Tuple[int, int, int]:
     spec_guesses : int
     """
     n_guesses = matches.shape[0]
-    correct_guesses = matches.loc[matches["correct"] == 1].shape[0]
+    correct_guesses = matches.loc[matches[correct] == 1].shape[0]
     wrong_guesses = matches.loc[
-        (matches["correct"] == 0) & ~(matches["Answer"] == "\n\t\t\t\t\t\n\t\t\t\t")
+        (matches[correct] == 0) & ~(matches[selfAnswer] == "\n\t\t\t\t\t\n\t\t\t\t")
     ].shape[0]
     spec_guesses = n_guesses - correct_guesses - wrong_guesses
     return correct_guesses, wrong_guesses, spec_guesses

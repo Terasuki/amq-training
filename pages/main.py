@@ -3,6 +3,7 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import sqlite3
 import plotly.express as px
+from utilities import get_previously_correct
 
 register_page(__name__, path="/")
 
@@ -56,7 +57,10 @@ layout = dbc.Container(
         dbc.Row(dbc.Col(dcc.Graph(id="songs_over_time_chart"), width=12)),
         dbc.Row(
             [
-                html.H4("Most Common Songs", style={"textAlign": "center", "marginTop": "2em"}),
+                html.H4(
+                    "Most Common Songs",
+                    style={"textAlign": "center", "marginTop": "2em"},
+                ),
                 dbc.Col(html.Div(id="common_songs_table"), width=12),
             ]
         ),
@@ -155,23 +159,40 @@ def update_dashboard(n):
     line_fig.update_layout(margin=dict(t=40, l=20, r=20, b=20))
 
     top_k = 10
-    song_counts = (
-        data.groupby(["name", "artist"])
-        .size()
-        .reset_index(name="count")
-        .sort_values("count", ascending=False)
-        .head(top_k)
-    )
+    song_groups = data.groupby(["name", "artist"])
+
+    song_stats = []
+    for (name, artist), group in song_groups:
+        c, w, s = get_previously_correct(group, correct="correct", selfAnswer="self_answer")
+        total = len(group)
+        song_stats.append([name, artist, f"{c}/{w}/{s} ({total})"])
+
+    # Sort by total count and pick top-k
+    song_stats = sorted(song_stats, key=lambda x: int(x[2].split("(")[-1][:-1]), reverse=True)[:top_k]
 
     table_header = [
-    html.Thead(
-        html.Tr([html.Th("Song Name"), html.Th("Artist"), html.Th("Count")])
-    )
+        html.Thead(
+            html.Tr([html.Th("Song Name"), html.Th("Artist"), html.Th("Correct/Wrong/Spec (Total)")])
+        )
     ]
-    table_body = [
-        html.Tr([html.Td(row["name"]), html.Td(row["artist"]), html.Td(row["count"])])
-        for _, row in song_counts.iterrows()
-    ]
+
+    table_body = []
+    for name, artist, breakdown in song_stats:
+        # Parse counts
+        parts, total_str = breakdown.split(" (")
+        c, w, s = map(int, parts.split("/"))
+        total = total_str[:-1]  # remove closing parenthesis
+
+        cell_content = html.Div([
+            html.Span(f"{c}", style={"color": "green"}),
+            html.Span(" / "),
+            html.Span(f"{w}", style={"color": "red"}),
+            html.Span(" / "),
+            html.Span(f"{s}", style={"color": "gray"}),
+            html.Span(f" ({total})", style={"fontWeight": "bold"})
+        ])
+
+        table_body.append(html.Tr([html.Td(name), html.Td(artist), html.Td(cell_content)]))
 
     common_songs_table = dbc.Table(
         table_header + [html.Tbody(table_body)],
@@ -180,6 +201,7 @@ def update_dashboard(n):
         hover=True,
         className="mt-3"
     )
+
     return (
         kpi_songs,
         kpi_rate,
@@ -188,5 +210,5 @@ def update_dashboard(n):
         pie_fig,
         bar_fig,
         line_fig,
-        common_songs_table
+        common_songs_table,
     )
