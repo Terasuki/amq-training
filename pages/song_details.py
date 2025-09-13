@@ -230,7 +230,7 @@ layout = (
                     width=12,
                 )
             ),
-            dcc.Interval(id="interval", interval=500, n_intervals=0),
+            dcc.Interval(id="interval", interval=5 * 6000, n_intervals=0),
         ],
         style={
             "padding": "0.5em",

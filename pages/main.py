@@ -60,7 +60,7 @@ layout = dbc.Container(
                 dbc.Col(html.Div(id="common_songs_table"), width=12),
             ]
         ),
-        dcc.Interval(id="interval", interval=5000, n_intervals=0),
+        dcc.Interval(id="interval", interval=5 * 6000, n_intervals=0),
     ],
     fluid=True,
     style={"padding": "1em"},
