@@ -20,7 +20,7 @@ def classify(row):
 def generate_styled_table(stats_list):
     table_header = [
         html.Thead(
-            html.Tr([html.Th("Song name"), html.Th("Artist"), html.Th("C/W/S (Total)")])
+            html.Tr([html.Th("Song name"), html.Th("Artist"), html.Th("C/I/S (Total)")])
         )
     ]
     table_rows = []
