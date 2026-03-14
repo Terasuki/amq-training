@@ -113,7 +113,7 @@ def update(n):
 
 
 @callback(
-    Output("selected-song", "data"),
+    Output("selected-song", "data", allow_duplicate=True),
     Output("row-click-redirect", "pathname"),
     Input("main_table", "active_cell"),
     State("main_table", "data"),

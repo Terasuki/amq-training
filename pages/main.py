@@ -1,4 +1,15 @@
-from dash import html, register_page, Input, Output, callback, dcc
+from dash import (
+    html,
+    register_page,
+    Input,
+    Output,
+    callback,
+    dcc,
+    dash_table,
+    no_update,
+    ctx,
+    State,
+)
 import dash_bootstrap_components as dbc
 import pandas as pd
 import sqlite3
@@ -17,35 +28,17 @@ def classify(row):
         return "Incorrect"
 
 
-def generate_styled_table(stats_list):
-    table_header = [
-        html.Thead(
-            html.Tr([html.Th("Song name"), html.Th("Artist"), html.Th("C/I/S (Total)")])
-        )
-    ]
-    table_rows = []
+def generate_table_data(stats_list):
+    data_list = []
     for s in stats_list:
-        cell_content = html.Div(
-            [
-                html.Span(f"{s['c']}", style={"color": "green"}),
-                html.Span(" / "),
-                html.Span(f"{s['w']}", style={"color": "red"}),
-                html.Span(" / "),
-                html.Span(f"{s['s']}", style={"color": "gray"}),
-                html.Span(f" ({s['total']})", style={"fontWeight": "bold"}),
-            ]
+        stat_str = (
+            f"<span style='color: green;'>{s['c']}</span> / "
+            f"<span style='color: red;'>{s['w']}</span> / "
+            f"<span style='color: gray;'>{s['s']}</span> "
+            f"(<span style='color: white;font-weight: bold;'>{s['total']}</span>)"
         )
-        table_rows.append(
-            html.Tr([html.Td(s["name"]), html.Td(s["artist"]), html.Td(cell_content)])
-        )
-
-    return dbc.Table(
-        table_header + [html.Tbody(table_rows)],
-        bordered=True,
-        striped=True,
-        hover=True,
-        className="mt-3",
-    )
+        data_list.append({"name": s["name"], "artist": s["artist"], "stats": stat_str})
+    return data_list
 
 
 def make_card(title, content_id):
@@ -70,6 +63,7 @@ def make_card(title, content_id):
 layout = dbc.Container(
     [
         html.H2("Home", style={"textAlign": "center", "marginBottom": "1em"}),
+        dcc.Location(id="url", refresh=True),
         dbc.Row(
             dbc.Col(
                 dbc.Button(
@@ -107,20 +101,88 @@ layout = dbc.Container(
                         dbc.Col(
                             [
                                 html.H4(
-                                    "Top listened songs",
-                                    style={"textAlign": "center", "marginTop": "2em"},
+                                    "Top listened songs", style={"textAlign": "center"}
                                 ),
-                                html.Div(id="common_songs_table"),
+                                dash_table.DataTable(
+                                    id="common_songs_table",
+                                    columns=[
+                                        {"name": "Song name", "id": "name"},
+                                        {"name": "Artist", "id": "artist"},
+                                        {
+                                            "name": "History",
+                                            "id": "stats",
+                                            "presentation": "markdown",
+                                        },
+                                    ],
+                                    style_table={
+                                        "width": "100%",
+                                        "overflowX": "auto",
+                                        "overflowY": "auto",
+                                        "border": "thin lightgrey solid",
+                                    },
+                                    style_cell={
+                                        "textAlign": "center",
+                                        "padding": "5px",
+                                        "whiteSpace": "normal",
+                                        "height": "auto",
+                                    },
+                                    style_header={
+                                        "backgroundColor": "rgb(30, 30, 30)",
+                                        "color": "white",
+                                    },
+                                    style_data={
+                                        "cursor": "pointer",
+                                        "backgroundColor": "black",
+                                        "color": "white",
+                                    },
+                                    row_selectable=False,
+                                    markdown_options={"html": True},
+                                    page_size=10,
+                                ),
                             ],
                             width=6,
                         ),
                         dbc.Col(
                             [
                                 html.H4(
-                                    "Top missed songs",
-                                    style={"textAlign": "center", "marginTop": "2em"},
+                                    "Top missed songs", style={"textAlign": "center"}
                                 ),
-                                html.Div(id="wrong_songs_table"),
+                                dash_table.DataTable(
+                                    id="wrong_songs_table",
+                                    columns=[
+                                        {"name": "Song name", "id": "name"},
+                                        {"name": "Artist", "id": "artist"},
+                                        {
+                                            "name": "History",
+                                            "id": "stats",
+                                            "presentation": "markdown",
+                                        },
+                                    ],
+                                    style_table={
+                                        "width": "100%",
+                                        "overflowX": "auto",
+                                        "overflowY": "auto",
+                                        "border": "thin lightgrey solid",
+                                    },
+                                    style_cell={
+                                        "textAlign": "center",
+                                        "padding": "5px",
+                                        "whiteSpace": "normal",
+                                        "height": "auto",
+                                    },
+                                    style_header={
+                                        "backgroundColor": "rgb(30, 30, 30)",
+                                        "color": "white",
+                                    },
+                                    style_data={
+                                        "cursor": "pointer",
+                                        "backgroundColor": "black",
+                                        "color": "white",
+                                    },
+                                    row_selectable=False,
+                                    markdown_options={"html": True},
+                                    page_size=10,
+                                ),
                             ],
                             width=6,
                         ),
@@ -142,8 +204,8 @@ layout = dbc.Container(
     Output("correct_incorrect_chart", "figure"),
     Output("guess_time_difficulty_chart", "figure"),
     Output("songs_over_time_chart", "figure"),
-    Output("common_songs_table", "children"),
-    Output("wrong_songs_table", "children"),
+    Output("common_songs_table", "data"),
+    Output("wrong_songs_table", "data"),
     Input("update_btn", "n_clicks"),
 )
 def update_dashboard(n_clicks):
@@ -232,10 +294,7 @@ def update_dashboard(n_clicks):
         )
 
     common_list = sorted(all_song_stats, key=lambda x: x["total"], reverse=True)[:top_k]
-    common_songs_table = generate_styled_table(common_list)
-
     wrong_list = sorted(all_song_stats, key=lambda x: x["w"], reverse=True)[:top_k]
-    wrong_songs_table = generate_styled_table(wrong_list)
 
     return (
         kpi_songs,
@@ -245,6 +304,37 @@ def update_dashboard(n_clicks):
         pie_fig,
         bar_fig,
         line_fig,
-        common_songs_table,
-        wrong_songs_table,
+        generate_table_data(common_list),
+        generate_table_data(wrong_list),
     )
+
+
+@callback(
+    Output("url", "pathname"),
+    Output("selected-song", "data", allow_duplicate=True),
+    Input("common_songs_table", "active_cell"),
+    Input("wrong_songs_table", "active_cell"),
+    State("common_songs_table", "data"),
+    State("wrong_songs_table", "data"),
+    prevent_initial_call=True,
+)
+def handle_row_click(active_common, active_wrong, data_common, data_wrong):
+    triggered_id = ctx.triggered_id
+
+    if triggered_id == "common_songs_table":
+        active_cell = active_common
+        data = data_common
+    elif triggered_id == "wrong_songs_table":
+        active_cell = active_wrong
+        data = data_wrong
+    else:
+        return no_update, no_update
+
+    if active_cell and data:
+        row_index = active_cell["row"]
+        song_info = data[row_index]
+
+        payload = {"name": song_info["name"], "artist": song_info["artist"]}
+        return "/main/song-details", payload
+
+    return no_update, no_update
