@@ -86,7 +86,10 @@ def receive_data() -> Tuple[Response, int]:
     """
     data = request.json
     timestamped_data = {"timestamp": datetime.now().isoformat(), **data}
-
+    raw_vintage = timestamped_data.get("vintage")
+    season = raw_vintage.get("key", "").split(".")[-1].capitalize()
+    year = raw_vintage.get("data", {}).get("year")
+    vintage = f"{season} {year}" if year else season
     with sqlite3.connect("data.db") as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -109,7 +112,7 @@ def receive_data() -> Tuple[Response, int]:
                 timestamped_data["type"],
                 timestamped_data["difficulty"],
                 timestamped_data["animeType"],
-                timestamped_data["vintage"],
+                vintage,
                 json.dumps(timestamped_data.get("tags", [])),
                 json.dumps(timestamped_data.get("genre", [])),
                 json.dumps(timestamped_data.get("altAnswers", [])),
