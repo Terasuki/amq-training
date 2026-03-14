@@ -17,6 +17,37 @@ def classify(row):
         return "Incorrect"
 
 
+def generate_styled_table(stats_list):
+    table_header = [
+        html.Thead(
+            html.Tr([html.Th("Song name"), html.Th("Artist"), html.Th("C/W/S (Total)")])
+        )
+    ]
+    table_rows = []
+    for s in stats_list:
+        cell_content = html.Div(
+            [
+                html.Span(f"{s['c']}", style={"color": "green"}),
+                html.Span(" / "),
+                html.Span(f"{s['w']}", style={"color": "red"}),
+                html.Span(" / "),
+                html.Span(f"{s['s']}", style={"color": "gray"}),
+                html.Span(f" ({s['total']})", style={"fontWeight": "bold"}),
+            ]
+        )
+        table_rows.append(
+            html.Tr([html.Td(s["name"]), html.Td(s["artist"]), html.Td(cell_content)])
+        )
+
+    return dbc.Table(
+        table_header + [html.Tbody(table_rows)],
+        bordered=True,
+        striped=True,
+        hover=True,
+        className="mt-3",
+    )
+
+
 def make_card(title, content_id):
     return dbc.Card(
         dbc.CardBody(
@@ -42,20 +73,17 @@ layout = dbc.Container(
         dbc.Row(
             dbc.Col(
                 dbc.Button(
-                    "Update data", 
-                    id="update_btn", 
-                    color="primary", 
-                    className="mb-4"
+                    "Update data", id="update_btn", color="primary", className="mb-4"
                 ),
-                width="auto"
+                width="auto",
             ),
-            justify="center"
+            justify="center",
         ),
         dbc.Spinner(
             id="loading-spinner",
             color="white",
             type="border",
-            fullscreen=False, 
+            fullscreen=False,
             spinner_style={"width": "5rem", "height": "5rem", "borderWidth": "0.5rem"},
             children=[
                 dbc.Row(
@@ -76,11 +104,26 @@ layout = dbc.Container(
                 dbc.Row(dbc.Col(dcc.Graph(id="songs_over_time_chart"), width=12)),
                 dbc.Row(
                     [
-                        html.H4(
-                            "Most common songs",
-                            style={"textAlign": "center", "marginTop": "2em"},
+                        dbc.Col(
+                            [
+                                html.H4(
+                                    "Top listened songs",
+                                    style={"textAlign": "center", "marginTop": "2em"},
+                                ),
+                                html.Div(id="common_songs_table"),
+                            ],
+                            width=6,
                         ),
-                        dbc.Col(html.Div(id="common_songs_table"), width=12),
+                        dbc.Col(
+                            [
+                                html.H4(
+                                    "Top missed songs",
+                                    style={"textAlign": "center", "marginTop": "2em"},
+                                ),
+                                html.Div(id="wrong_songs_table"),
+                            ],
+                            width=6,
+                        ),
                     ]
                 ),
             ],
@@ -100,6 +143,7 @@ layout = dbc.Container(
     Output("guess_time_difficulty_chart", "figure"),
     Output("songs_over_time_chart", "figure"),
     Output("common_songs_table", "children"),
+    Output("wrong_songs_table", "children"),
     Input("update_btn", "n_clicks"),
 )
 def update_dashboard(n_clicks):
@@ -177,45 +221,21 @@ def update_dashboard(n_clicks):
 
     top_k = 10
     song_groups = data.groupby(["name", "artist"])
-
-    song_stats = []
+    all_song_stats = []
     for (name, artist), group in song_groups:
-        c, w, s = get_previously_correct(group, correct="correct", selfAnswer="self_answer")
-        total = len(group)
-        song_stats.append([name, artist, f"{c}/{w}/{s} ({total})"])
-
-    song_stats = sorted(song_stats, key=lambda x: int(x[2].split("(")[-1][:-1]), reverse=True)[:top_k]
-
-    table_header = [
-        html.Thead(
-            html.Tr([html.Th("Song Name"), html.Th("Artist"), html.Th("Correct/Wrong/Spec (Total)")])
+        c, w, s = get_previously_correct(
+            group, correct="correct", selfAnswer="self_answer"
         )
-    ]
+        total = len(group)
+        all_song_stats.append(
+            {"name": name, "artist": artist, "c": c, "w": w, "s": s, "total": total}
+        )
 
-    table_body = []
-    for name, artist, breakdown in song_stats:
-        parts, total_str = breakdown.split(" (")
-        c, w, s = map(int, parts.split("/"))
-        total = total_str[:-1]
+    common_list = sorted(all_song_stats, key=lambda x: x["total"], reverse=True)[:top_k]
+    common_songs_table = generate_styled_table(common_list)
 
-        cell_content = html.Div([
-            html.Span(f"{c}", style={"color": "green"}),
-            html.Span(" / "),
-            html.Span(f"{w}", style={"color": "red"}),
-            html.Span(" / "),
-            html.Span(f"{s}", style={"color": "gray"}),
-            html.Span(f" ({total})", style={"fontWeight": "bold"})
-        ])
-
-        table_body.append(html.Tr([html.Td(name), html.Td(artist), html.Td(cell_content)]))
-
-    common_songs_table = dbc.Table(
-        table_header + [html.Tbody(table_body)],
-        bordered=True,
-        striped=True,
-        hover=True,
-        className="mt-3"
-    )
+    wrong_list = sorted(all_song_stats, key=lambda x: x["w"], reverse=True)[:top_k]
+    wrong_songs_table = generate_styled_table(wrong_list)
 
     return (
         kpi_songs,
@@ -226,4 +246,5 @@ def update_dashboard(n_clicks):
         bar_fig,
         line_fig,
         common_songs_table,
+        wrong_songs_table,
     )
