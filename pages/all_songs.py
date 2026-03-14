@@ -26,8 +26,6 @@ def main_table():
             id="main_table",
             columns=[],
             data=[],
-            sort_action="native",
-            sort_mode="single",
             page_action="native",
             page_size=50,
             style_as_list_view=True,
