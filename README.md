@@ -2,9 +2,9 @@
 
 AMQ Utils is a local Flask/Dash web app that provides several utilities:
 
-- Local database creation for own guesses
+- Local database songs played
 - Live song history of the last song played
-- More to come... 
+- Minimal dashboard of songs played
 
 ## Usage instructions
 
@@ -17,6 +17,7 @@ Make sure Tampermonkey is installed in your browser, then click [here](https://g
 Tampermonkey should automatically pop up for installation, otherwise manually copy and paste into a new script in Tampermonkey's library.
 
 ### Installing the server
+
 You will need a valid Python installation.
 
 Install dependencies,
