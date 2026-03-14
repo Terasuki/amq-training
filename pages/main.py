@@ -40,31 +40,51 @@ layout = dbc.Container(
     [
         html.H2("Home", style={"textAlign": "center", "marginBottom": "1em"}),
         dbc.Row(
-            [
-                dbc.Col(make_card("Songs Played", "songs_played"), width=2),
-                dbc.Col(make_card("Guess Rate", "guess_rate"), width=2),
-                dbc.Col(make_card("Average Guess Time", "guess_time"), width=2),
-                dbc.Col(make_card("Songs Spectated", "songs_spec"), width=2),
-            ],
-            justify="center",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(dcc.Graph(id="correct_incorrect_chart"), width=6),
-                dbc.Col(dcc.Graph(id="guess_time_difficulty_chart"), width=6),
-            ]
-        ),
-        dbc.Row(dbc.Col(dcc.Graph(id="songs_over_time_chart"), width=12)),
-        dbc.Row(
-            [
-                html.H4(
-                    "Most Common Songs",
-                    style={"textAlign": "center", "marginTop": "2em"},
+            dbc.Col(
+                dbc.Button(
+                    "Update data", 
+                    id="update_btn", 
+                    color="primary", 
+                    className="mb-4"
                 ),
-                dbc.Col(html.Div(id="common_songs_table"), width=12),
-            ]
+                width="auto"
+            ),
+            justify="center"
         ),
-        dcc.Interval(id="interval", interval=5 * 6000, n_intervals=0),
+        dbc.Spinner(
+            id="loading-spinner",
+            color="white",
+            type="border",
+            fullscreen=False, 
+            spinner_style={"width": "5rem", "height": "5rem", "borderWidth": "0.5rem"},
+            children=[
+                dbc.Row(
+                    [
+                        dbc.Col(make_card("Songs played", "songs_played"), width=2),
+                        dbc.Col(make_card("Guess rate", "guess_rate"), width=2),
+                        dbc.Col(make_card("Average guess time", "guess_time"), width=2),
+                        dbc.Col(make_card("Songs spectated", "songs_spec"), width=2),
+                    ],
+                    justify="center",
+                ),
+                dbc.Row(
+                    [
+                        dbc.Col(dcc.Graph(id="correct_incorrect_chart"), width=6),
+                        dbc.Col(dcc.Graph(id="guess_time_difficulty_chart"), width=6),
+                    ]
+                ),
+                dbc.Row(dbc.Col(dcc.Graph(id="songs_over_time_chart"), width=12)),
+                dbc.Row(
+                    [
+                        html.H4(
+                            "Most common songs",
+                            style={"textAlign": "center", "marginTop": "2em"},
+                        ),
+                        dbc.Col(html.Div(id="common_songs_table"), width=12),
+                    ]
+                ),
+            ],
+        ),
     ],
     fluid=True,
     style={"padding": "1em"},
@@ -80,9 +100,9 @@ layout = dbc.Container(
     Output("guess_time_difficulty_chart", "figure"),
     Output("songs_over_time_chart", "figure"),
     Output("common_songs_table", "children"),
-    Input("interval", "n_intervals"),
+    Input("update_btn", "n_clicks"),
 )
-def update_dashboard(n):
+def update_dashboard(n_clicks):
     conn = sqlite3.connect("data.db")
     query = """
         SELECT timestamp, difficulty, guess_time, correct, self_answer, name, artist
@@ -112,7 +132,6 @@ def update_dashboard(n):
     pie_fig = px.pie(
         values=outcome_counts.values,
         names=outcome_counts.index,
-        title="Songs distribution",
         color=outcome_counts.index,
         color_discrete_map={
             "Correct": "green",
@@ -137,9 +156,8 @@ def update_dashboard(n):
         difficulty_time,
         x="difficulty_bin",
         y="guess_time",
-        title="Guess Time by Difficulty",
         labels={
-            "guess_time": "Average Guess Time (ms)",
+            "guess_time": "Average guess time (ms)",
             "difficulty_bin": "Difficulty",
         },
     )
@@ -152,8 +170,7 @@ def update_dashboard(n):
         daily_counts,
         x="timestamp",
         y="songs",
-        title="Songs Played + Spectated",
-        labels={"songs": "Songs Played + Spectated", "timestamp": "Date"},
+        labels={"songs": "Songs played + spectated", "timestamp": "Date"},
     )
     line_fig.update_traces(mode="lines+markers")
     line_fig.update_layout(margin=dict(t=40, l=20, r=20, b=20))
@@ -167,7 +184,6 @@ def update_dashboard(n):
         total = len(group)
         song_stats.append([name, artist, f"{c}/{w}/{s} ({total})"])
 
-    # Sort by total count and pick top-k
     song_stats = sorted(song_stats, key=lambda x: int(x[2].split("(")[-1][:-1]), reverse=True)[:top_k]
 
     table_header = [
@@ -178,10 +194,9 @@ def update_dashboard(n):
 
     table_body = []
     for name, artist, breakdown in song_stats:
-        # Parse counts
         parts, total_str = breakdown.split(" (")
         c, w, s = map(int, parts.split("/"))
-        total = total_str[:-1]  # remove closing parenthesis
+        total = total_str[:-1]
 
         cell_content = html.Div([
             html.Span(f"{c}", style={"color": "green"}),
