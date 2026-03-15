@@ -26,6 +26,9 @@ def main_table():
             id="main_table",
             columns=[],
             data=[],
+            filter_action="native",
+            filter_options={"placeholder_text": "", "case": "insensitive"},
+            sort_action="native",
             page_action="native",
             page_size=50,
             style_as_list_view=True,
@@ -116,18 +119,15 @@ def update(n):
     Output("selected-song", "data", allow_duplicate=True),
     Output("row-click-redirect", "pathname"),
     Input("main_table", "active_cell"),
-    State("main_table", "data"),
-    State("main_table", "page_current"),
+    State("main_table", "derived_viewport_data"),
     prevent_initial_call=True,
 )
-def row_click(active_cell, data, page_current):
-    if active_cell:
-        page_size = 50
+def row_click(active_cell, viewport_data):
+    if active_cell and viewport_data:
         row_index = active_cell["row"]
-        current_page_index = page_current if page_current is not None else 0
-        absolute_row_index = (current_page_index * page_size) + row_index
-        song = data[absolute_row_index]["Song name"]
-        artist = data[absolute_row_index]["Artist"]
+        song = viewport_data[row_index].get("Song name")
+        artist = viewport_data[row_index].get("Artist")
+
         return {"name": song, "artist": artist}, "/main/song-details"
     return no_update, no_update
 
