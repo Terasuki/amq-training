@@ -32,10 +32,12 @@ def generate_table_data(stats_list):
     data_list = []
     for s in stats_list:
         stat_str = (
+            f"<div style='text-align: center;'>"
             f"<span style='color: green;'>{s['c']}</span> / "
             f"<span style='color: red;'>{s['w']}</span> / "
             f"<span style='color: gray;'>{s['s']}</span> "
             f"(<span style='color: white;font-weight: bold;'>{s['total']}</span>)"
+            f"</div>"
         )
         data_list.append({"name": s["name"], "artist": s["artist"], "stats": stat_str})
     return data_list
