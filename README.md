@@ -18,7 +18,7 @@ Tampermonkey should automatically pop up for installation, otherwise manually co
 
 ### Installing the server
 
-You will need a valid Python installation.
+You will need a valid Python installation. The project is tested on Python 3.14.3.
 
 Install dependencies,
 
