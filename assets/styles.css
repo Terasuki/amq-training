@@ -1,5 +1,5 @@
 p {
-    color: #ffffff;
+    color: white;
     font-size: 1.25rem;
 }
 
@@ -11,4 +11,10 @@ h5 {
     color: green;
     font-size: 16px;
     font-weight: bold;
+}
+
+.card-contents {
+    color: white;
+    text-align: center;
+    font-size: 1.25em;
 }

@@ -14,7 +14,8 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import sqlite3
 import plotly.express as px
-from utilities import get_previously_correct
+from src.utilities import get_previously_correct
+from src.objects import card
 
 register_page(__name__, path="/")
 
@@ -43,25 +44,6 @@ def generate_table_data(stats_list):
     return data_list
 
 
-def make_card(title, content_id):
-    return dbc.Card(
-        dbc.CardBody(
-            [
-                html.H6(title, style={"textAlign": "center"}, className="card-title"),
-                html.Div(
-                    id=content_id,
-                    style={
-                        "textAlign": "center",
-                        "fontSize": "1.25em",
-                        "fontWeight": "bold",
-                    },
-                ),
-            ]
-        ),
-        className="shadow-sm mb-3",
-    )
-
-
 layout = dbc.Container(
     [
         html.H2("Home", style={"textAlign": "center", "marginBottom": "1em"}),
@@ -84,10 +66,10 @@ layout = dbc.Container(
             children=[
                 dbc.Row(
                     [
-                        dbc.Col(make_card("Songs played", "songs_played"), width=2),
-                        dbc.Col(make_card("Guess rate", "guess_rate"), width=2),
-                        dbc.Col(make_card("Average guess time", "guess_time"), width=2),
-                        dbc.Col(make_card("Songs spectated", "songs_spec"), width=2),
+                        dbc.Col(card("Songs played", "songs_played"), width=2),
+                        dbc.Col(card("Guess rate", "guess_rate"), width=2),
+                        dbc.Col(card("Average guess time", "guess_time"), width=2),
+                        dbc.Col(card("Songs spectated", "songs_spec"), width=2),
                     ],
                     justify="center",
                 ),

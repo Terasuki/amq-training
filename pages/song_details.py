@@ -2,7 +2,7 @@ from dash import html, register_page, Input, Output, callback, dash_table, dcc
 import dash_bootstrap_components as dbc
 import pandas as pd
 import sqlite3
-from utilities import get_last_song_matches, get_previously_correct
+from src.utilities import get_last_song_matches, get_previously_correct
 import ast
 
 

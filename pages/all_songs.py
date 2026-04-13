@@ -15,7 +15,7 @@ from dash import (
     State,
 )
 
-from utilities import clean_full_data
+from src.utilities import clean_full_data
 
 register_page(__name__)
 
