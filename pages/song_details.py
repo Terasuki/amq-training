@@ -3,107 +3,116 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import sqlite3
 from src.utilities import get_last_song_matches, get_previously_correct
+from src.objects import card
 import ast
 
 
 register_page(__name__)
 
 
-def last_song_song():
-    return html.Div(id="last_song_song2")
-
-
-def last_song_artist():
-    return html.Div(id="last_song_artist2")
-
-
-def last_song_possible_answers():
-    return html.Div(id="last_song_possible_answers2")
-
-
-def last_song_previously_correct():
-    return html.Div(
-        id="last_song_previously_correct2",
-        style={"margin": "auto", "text-align": "center"},
+def song_details_previously_played():
+    return dash_table.DataTable(
+        id="song_details_previously_played",
+        columns=[],
+        data=[],
+        style_as_list_view=True,
+        style_table={
+            "width": "100%",
+            "overflowX": "auto",
+            "overflowY": "auto",
+            "border": "thin lightgrey solid",
+        },
+        style_cell={
+            "textAlign": "center",
+            "padding": "5px",
+            "whiteSpace": "normal",
+            "height": "auto",
+        },
+        style_header={"backgroundColor": "rgb(30, 30, 30)", "color": "white"},
+        style_data_conditional=[
+            {
+                "if": {"filter_query": "{correct} = 1"},
+                "backgroundColor": "green",
+                "color": "white",
+            },
+            {
+                "if": {"filter_query": "{correct} = 0"},
+                "backgroundColor": "red",
+                "color": "white",
+            },
+            {
+                "if": {"filter_query": "{correct} is nil"},
+                "backgroundColor": "gray",
+                "color": "white",
+            },
+            {
+                "if": {"filter_query": "{Guess time} is nil && {Answer} is blank"},
+                "backgroundColor": "gray",
+                "color": "white",
+            },
+            {"if": {"column_id": "correct"}, "display": "None"},
+        ],
+        style_header_conditional=[{"if": {"column_id": "correct"}, "display": "None"}],
     )
 
 
-def last_song_previously_played():
-    return html.Div(
-        dash_table.DataTable(
-            id="last_song_previously_played2",
-            columns=[],
-            data=[],
-            style_as_list_view=True,
-            style_table={
-                "width": "100%",
-                "overflowX": "auto",
-                "overflowY": "auto",
-                "border": "thin lightgrey solid",
-            },
-            style_cell={
-                "textAlign": "center",
-                "padding": "5px",
-                "whiteSpace": "normal",
-                "height": "auto",
-            },
-            style_header={"backgroundColor": "rgb(30, 30, 30)", "color": "white"},
-            style_data_conditional=[
-                {
-                    "if": {
-                        "filter_query": "{correct} = 1",
-                    },
-                    "backgroundColor": "green",
-                    "color": "white",
-                },
-                {
-                    "if": {
-                        "filter_query": "{correct} = 0",
-                    },
-                    "backgroundColor": "red",
-                    "color": "white",
-                },
-                {
-                    "if": {
-                        "filter_query": "{correct} is nil",
-                    },
-                    "backgroundColor": "gray",
-                    "color": "white",
-                },
-                {
-                    "if": {
-                        "filter_query": "{Guess time} is nil && {Answer} is blank",
-                    },
-                    "backgroundColor": "gray",
-                    "color": "white",
-                },
-                {
-                    "if": {
-                        "column_id": "correct",
-                    },
-                    "display": "None",
-                },
-            ],
-            style_header_conditional=[
-                {
-                    "if": {
-                        "column_id": "correct",
-                    },
-                    "display": "None",
-                }
-            ],
+layout = dbc.Container(
+    children=[
+        html.H2("Selected Song", style={"text-align": "center"}),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        card("Song", "song_details_song"),
+                        card("Artist", "song_details_artist"),
+                    ],
+                    width=6,
+                ),
+                dbc.Col(
+                    card("Possible answers", "song_details_possible_answers"),
+                    width=6,
+                    style={"height": "100%"},
+                ),
+            ]
         ),
-        style={"margin": "auto", "text-align": "center"},
-    )
+        dbc.Row(
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody(
+                        [
+                            html.H5(
+                                "History",
+                                style={"text-align": "center"},
+                                className="card-title",
+                            ),
+                            html.Div(
+                                id="song_details_previously_correct",
+                                style={"margin": "auto", "text-align": "center"},
+                            ),
+                            html.Div(
+                                song_details_previously_played(),
+                                style={"margin": "auto", "text-align": "center"},
+                            ),
+                        ]
+                    ),
+                    className="shadow-sm mb-1",
+                ),
+                width=12,
+            )
+        ),
+        dcc.Interval(id="interval", interval=5 * 6000, n_intervals=0),
+    ],
+    style={"padding": "0.5em"},
+)
 
 
 @callback(
-    Output("last_song_song2", "children"),
-    Output("last_song_artist2", "children"),
-    Output("last_song_possible_answers2", "children"),
-    Output("last_song_previously_correct2", "children"),
-    Output("last_song_previously_played2", "columns"),
-    Output("last_song_previously_played2", "data"),
+    Output("song_details_song", "children"),
+    Output("song_details_artist", "children"),
+    Output("song_details_possible_answers", "children"),
+    Output("song_details_previously_correct", "children"),
+    Output("song_details_previously_played", "columns"),
+    Output("song_details_previously_played", "data"),
     Input("selected-song", "data"),
 )
 def display_song_details(data):
@@ -153,87 +162,3 @@ def display_song_details(data):
         ls_matches_columns,
         ls_matches_data,
     )
-
-
-layout = (
-    dbc.Container(
-        children=[
-            html.H2("Selected Song", style={"text-align": "center"}),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            dbc.Card(
-                                dbc.CardBody(
-                                    [
-                                        html.H5(
-                                            "Song",
-                                            style={"text-align": "center"},
-                                            className="card-title",
-                                        ),
-                                        last_song_song(),
-                                    ]
-                                ),
-                                className="shadow-sm mb-1",
-                            ),
-                            dbc.Card(
-                                dbc.CardBody(
-                                    [
-                                        html.H5(
-                                            "Artist",
-                                            style={"text-align": "center"},
-                                            className="card-title",
-                                        ),
-                                        last_song_artist(),
-                                    ]
-                                ),
-                                className="shadow-sm mb-1",
-                            ),
-                        ],
-                        width=6,
-                    ),
-                    dbc.Col(
-                        dbc.Card(
-                            dbc.CardBody(
-                                [
-                                    html.H5(
-                                        "Possible answers",
-                                        style={"text-align": "center"},
-                                        className="card-title",
-                                    ),
-                                    last_song_possible_answers(),
-                                ]
-                            ),
-                            className="shadow-sm mb-1",
-                            style={"height": "100%"},
-                        ),
-                        width=6,
-                    ),
-                ]
-            ),
-            dbc.Row(
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.H5(
-                                    "History",
-                                    style={"text-align": "center"},
-                                    className="card-title",
-                                ),
-                                last_song_previously_correct(),
-                                last_song_previously_played(),
-                            ]
-                        ),
-                        className="shadow-sm mb-1",
-                    ),
-                    width=12,
-                )
-            ),
-            dcc.Interval(id="interval", interval=5 * 6000, n_intervals=0),
-        ],
-        style={
-            "padding": "0.5em",
-        },
-    ),
-)
