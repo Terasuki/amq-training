@@ -5,4 +5,3 @@ plotly
 dash-bootstrap-components
 dash_bootstrap_templates
 Flask
-flask-cors

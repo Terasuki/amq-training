@@ -7,7 +7,6 @@ from typing import Tuple
 import dash_bootstrap_components as dbc
 
 from flask import Flask, request, jsonify, redirect, Response
-from flask_cors import cross_origin
 from dash import Dash, html, page_container, dcc
 from dash_bootstrap_templates import load_figure_template
 
@@ -65,7 +64,6 @@ def init_db():
 
 
 @app.route("/", methods=["POST"])
-@cross_origin(origin="*")
 def receive_data() -> Tuple[Response, int]:
     """
     Helper function that receives data from the Tampermonkey script and processes it to the database.

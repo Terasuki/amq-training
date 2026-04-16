@@ -16,7 +16,7 @@ Make sure Tampermonkey is installed in your browser, then click [here](https://g
 
 Tampermonkey should automatically pop up for installation, otherwise manually copy and paste into a new script in Tampermonkey's library.
 
-### Installing the server
+### Running the server
 
 You will need a valid Python installation. The project is tested on Python 3.14.3.
 
@@ -31,3 +31,5 @@ Then,
 which starts a Flask development server (receives the data from the userscript).
 
 The dashboard itself can be accessed on the localhost link in the terminal.
+
+*Warning: this opens your computer to potential bad actors if they know which port you are hosting the server. I am not responsible for any damage this may incur.*
