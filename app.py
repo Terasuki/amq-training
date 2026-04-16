@@ -1,6 +1,5 @@
 import json
 import sqlite3
-import webbrowser
 
 from datetime import datetime
 from typing import Tuple
@@ -25,14 +24,6 @@ dashboard = Dash(
 
 dashboard.title = "AMQ Song List"
 load_figure_template("DARKLY")
-
-
-def open_browser() -> None:
-    """
-    Function to start the game and the dashboard.
-    """
-    webbrowser.open_new("http://127.0.0.1:8888/main/")
-    webbrowser.open_new_tab("https://animemusicquiz.com/")
 
 
 def init_db():
@@ -156,5 +147,4 @@ dashboard.layout = html.Div([dropdown, page_container])
 
 if __name__ == "__main__":
     init_db()
-    # Timer(1, open_browser).start()
     app.run(host="127.0.0.1", port=8888, debug=True)

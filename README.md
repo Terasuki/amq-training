@@ -24,6 +24,10 @@ Install dependencies,
 
 `pip install -r requirements.txt`.
 
-Then start the server by running
+Then,
 
-`python app.py`.
+`python app.py`,
+
+which starts a Flask development server (receives the data from the userscript).
+
+The dashboard itself can be accessed on the localhost link in the terminal.
