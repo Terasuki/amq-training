@@ -79,7 +79,8 @@ def receive_data() -> Tuple[Response, int]:
     season = raw_vintage.get("key", "").split(".")[-1].capitalize()
     year = raw_vintage.get("data", {}).get("year")
     vintage = f"{season} {year}" if year else season
-    with sqlite3.connect("data.db") as conn:
+    conn = sqlite3.connect("data.db")
+    try:
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -117,6 +118,8 @@ def receive_data() -> Tuple[Response, int]:
             ),
         )
         conn.commit()
+    finally:
+        conn.close()
 
     return jsonify({"status": "success", "message": "Data saved"}), 200
 

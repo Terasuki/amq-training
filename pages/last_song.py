@@ -109,10 +109,13 @@ layout = dbc.Container(
     Input("interval", "n_intervals"),
 )
 def update_dashboard(n):
-    with sqlite3.connect("data.db") as conn:
+    conn = sqlite3.connect("data.db")
+    try:
         query = "SELECT * FROM amq_data ORDER BY timestamp DESC LIMIT 1"
         last_song = pd.read_sql_query(query, conn)
         ls_matches, _alt_answers = get_last_song_matches(last_song, conn)
+    finally:
+        conn.close()
 
     links = get_song_links(last_song)
     ls_links_html = [
