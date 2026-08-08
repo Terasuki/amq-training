@@ -13,8 +13,8 @@ from dash import (
 import dash_bootstrap_components as dbc
 import pandas as pd
 import sqlite3
+import io
 import plotly.express as px
-from src.utilities import get_previously_correct
 from src.objects import card
 from src.theme import (
     SUCCESS_CHART,
@@ -58,6 +58,7 @@ layout = dbc.Container(
     [
         html.H2("Home", style={"textAlign": "center", "marginBottom": "1em"}),
         dcc.Location(id="url", refresh=True),
+        dcc.Store(id="dashboard_data_store", storage_type="session"),
         dbc.Row(
             dbc.Col(
                 dbc.Button(
@@ -163,6 +164,27 @@ layout = dbc.Container(
 
 
 @callback(
+    Output("dashboard_data_store", "data"),
+    Input("update_btn", "n_clicks"),
+    State("dashboard_data_store", "data"),
+)
+def refresh_dashboard_data(n_clicks, cached_data):
+    if ctx.triggered_id != "update_btn" and cached_data is not None:
+        return no_update
+
+    conn = sqlite3.connect("data.db")
+    query = """
+        SELECT timestamp, difficulty, guess_time, correct, self_answer, name, artist
+        FROM amq_data
+        ORDER BY timestamp ASC
+    """
+    data = pd.read_sql_query(query, conn, parse_dates=["timestamp"])
+    conn.close()
+
+    return data.to_json(date_format="iso", orient="split")
+
+
+@callback(
     Output("songs_played", "children"),
     Output("guess_rate", "children"),
     Output("guess_time", "children"),
@@ -172,17 +194,14 @@ layout = dbc.Container(
     Output("songs_over_time_chart", "figure"),
     Output("common_songs_table", "data"),
     Output("wrong_songs_table", "data"),
-    Input("update_btn", "n_clicks"),
+    Input("dashboard_data_store", "data"),
 )
-def update_dashboard(n_clicks):
-    conn = sqlite3.connect("data.db")
-    query = """
-        SELECT timestamp, difficulty, guess_time, correct, self_answer, name, artist
-        FROM amq_data
-        ORDER BY timestamp ASC
-    """
-    data = pd.read_sql_query(query, conn, parse_dates=["timestamp"])
-    conn.close()
+def update_dashboard(stored_data):
+    if not stored_data:
+        return (no_update,) * 9
+
+    data = pd.read_json(io.StringIO(stored_data), orient="split")
+    data["timestamp"] = pd.to_datetime(data["timestamp"])
 
     spec_count = data.loc[data["guess_time"].isna() & data["self_answer"].isna()].shape[
         0
@@ -248,19 +267,24 @@ def update_dashboard(n_clicks):
     line_fig.update_layout(margin=dict(t=40, l=20, r=20, b=20))
 
     top_k = 10
-    song_groups = data.groupby(["name", "artist"])
-    all_song_stats = []
-    for (name, artist), group in song_groups:
-        c, w, s = get_previously_correct(
-            group, correct="correct", selfAnswer="self_answer"
-        )
-        total = len(group)
-        all_song_stats.append(
-            {"name": name, "artist": artist, "c": c, "w": w, "s": s, "total": total}
-        )
+    is_correct = data["correct"] == 1
+    is_wrong = (data["correct"] == 0) & ~(
+        data["self_answer"] == "\n\t\t\t\t\t\n\t\t\t\t"
+    )
 
-    common_list = sorted(all_song_stats, key=lambda x: x["total"], reverse=True)[:top_k]
-    wrong_list = sorted(all_song_stats, key=lambda x: x["w"], reverse=True)[:top_k]
+    grouped = data.groupby(["name", "artist"])
+    song_stats = pd.concat(
+        [
+            grouped.size().rename("total"),
+            is_correct.groupby([data["name"], data["artist"]]).sum().rename("c"),
+            is_wrong.groupby([data["name"], data["artist"]]).sum().rename("w"),
+        ],
+        axis=1,
+    ).reset_index()
+    song_stats["s"] = song_stats["total"] - song_stats["c"] - song_stats["w"]
+
+    common_list = song_stats.nlargest(top_k, "total").to_dict("records")
+    wrong_list = song_stats.nlargest(top_k, "w").to_dict("records")
 
     return (
         kpi_songs,
