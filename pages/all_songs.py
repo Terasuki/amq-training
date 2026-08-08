@@ -16,6 +16,18 @@ from dash import (
 )
 
 from src.utilities import clean_full_data
+from src.theme import (
+    SUCCESS,
+    SUCCESS_TEXT,
+    DANGER,
+    DANGER_TEXT,
+    NEUTRAL,
+    NEUTRAL_TEXT,
+    table_style_table,
+    table_style_cell,
+    table_style_header,
+    table_header_conditional_correct,
+)
 
 register_page(__name__)
 
@@ -32,47 +44,31 @@ def main_table():
             page_action="native",
             page_size=50,
             style_as_list_view=True,
-            style_table={
-                "width": "100%",
-                "overflowX": "auto",
-                "overflowY": "auto",
-                "border": "thin lightgrey solid",
-            },
-            style_cell={
-                "textAlign": "center",
-                "padding": "5px",
-                "whiteSpace": "normal",
-                "height": "auto",
-            },
-            style_header={"backgroundColor": "rgb(30, 30, 30)", "color": "white"},
+            style_table=table_style_table(),
+            style_cell=table_style_cell(),
+            style_header=table_style_header(),
             style_data_conditional=[
                 {
-                    "if": {
-                        "filter_query": "{correct} = 1",
-                    },
-                    "backgroundColor": "green",
-                    "color": "white",
+                    "if": {"filter_query": "{correct} = 1"},
+                    "backgroundColor": SUCCESS,
+                    "color": SUCCESS_TEXT,
                 },
                 {
-                    "if": {
-                        "filter_query": "{correct} = 0",
-                    },
-                    "backgroundColor": "red",
-                    "color": "white",
+                    "if": {"filter_query": "{correct} = 0"},
+                    "backgroundColor": DANGER,
+                    "color": DANGER_TEXT,
                 },
                 {
-                    "if": {
-                        "filter_query": "{correct} is nil",
-                    },
-                    "backgroundColor": "gray",
-                    "color": "white",
+                    "if": {"filter_query": "{correct} is nil"},
+                    "backgroundColor": NEUTRAL,
+                    "color": NEUTRAL_TEXT,
                 },
                 {
                     "if": {
                         "filter_query": "{Guess time} is nil && {Answer} is blank",
                     },
-                    "backgroundColor": "gray",
-                    "color": "white",
+                    "backgroundColor": NEUTRAL,
+                    "color": NEUTRAL_TEXT,
                 },
                 {
                     "if": {
@@ -81,14 +77,7 @@ def main_table():
                     "display": "None",
                 },
             ],
-            style_header_conditional=[
-                {
-                    "if": {
-                        "column_id": "correct",
-                    },
-                    "display": "None",
-                }
-            ],
+            style_header_conditional=table_header_conditional_correct(),
             style_data={"cursor": "pointer"},
         ),
         style={"margin": "auto", "text-align": "center"},

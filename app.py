@@ -8,7 +8,8 @@ import dash_bootstrap_components as dbc
 
 from flask import Flask, request, jsonify, redirect, Response
 from dash import Dash, html, page_container, dcc
-from dash_bootstrap_templates import load_figure_template
+
+from src.theme import get_pastel_template
 
 app = Flask(__name__)
 
@@ -16,13 +17,13 @@ dashboard = Dash(
     __name__,
     server=app,
     url_base_pathname="/main/",
-    external_stylesheets=[dbc.themes.SLATE, "/assets/styles.css"],
+    external_stylesheets=[dbc.themes.BOOTSTRAP, "/assets/styles.css"],
     update_title=None,
     use_pages=True,
 )
 
 dashboard.title = "AMQ Song List"
-load_figure_template("DARKLY")
+get_pastel_template()
 
 
 def init_db():
@@ -141,6 +142,7 @@ dropdown = html.Div(
         ),
         dcc.Store(id="selected-song", storage_type="session"),
     ],
+    className="app-nav",
     style={"margin": "auto", "text-align": "left"},
 )
 

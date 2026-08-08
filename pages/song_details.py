@@ -4,6 +4,18 @@ import pandas as pd
 import sqlite3
 from src.utilities import get_last_song_matches, get_previously_correct
 from src.objects import card
+from src.theme import (
+    SUCCESS,
+    SUCCESS_TEXT,
+    DANGER,
+    DANGER_TEXT,
+    NEUTRAL,
+    NEUTRAL_TEXT,
+    table_style_table,
+    table_style_cell,
+    table_style_header,
+    table_header_conditional_correct,
+)
 import ast
 
 
@@ -16,43 +28,33 @@ def song_details_previously_played():
         columns=[],
         data=[],
         style_as_list_view=True,
-        style_table={
-            "width": "100%",
-            "overflowX": "auto",
-            "overflowY": "auto",
-            "border": "thin lightgrey solid",
-        },
-        style_cell={
-            "textAlign": "center",
-            "padding": "5px",
-            "whiteSpace": "normal",
-            "height": "auto",
-        },
-        style_header={"backgroundColor": "rgb(30, 30, 30)", "color": "white"},
+        style_table=table_style_table(),
+        style_cell=table_style_cell(),
+        style_header=table_style_header(),
         style_data_conditional=[
             {
                 "if": {"filter_query": "{correct} = 1"},
-                "backgroundColor": "green",
-                "color": "white",
+                "backgroundColor": SUCCESS,
+                "color": SUCCESS_TEXT,
             },
             {
                 "if": {"filter_query": "{correct} = 0"},
-                "backgroundColor": "red",
-                "color": "white",
+                "backgroundColor": DANGER,
+                "color": DANGER_TEXT,
             },
             {
                 "if": {"filter_query": "{correct} is nil"},
-                "backgroundColor": "gray",
-                "color": "white",
+                "backgroundColor": NEUTRAL,
+                "color": NEUTRAL_TEXT,
             },
             {
                 "if": {"filter_query": "{Guess time} is nil && {Answer} is blank"},
-                "backgroundColor": "gray",
-                "color": "white",
+                "backgroundColor": NEUTRAL,
+                "color": NEUTRAL_TEXT,
             },
             {"if": {"column_id": "correct"}, "display": "None"},
         ],
-        style_header_conditional=[{"if": {"column_id": "correct"}, "display": "None"}],
+        style_header_conditional=table_header_conditional_correct(),
     )
 
 
@@ -95,7 +97,7 @@ layout = dbc.Container(
                             ),
                         ]
                     ),
-                    className="shadow-sm mb-1",
+                    className="mb-1",
                 ),
                 width=12,
             )
@@ -141,11 +143,11 @@ def display_song_details(data):
     correct_guesses, wrong_guesses, spec_guesses = get_previously_correct(ls_matches)
     ls_previously_correct = html.P(
         children=[
-            html.Span(correct_guesses, style={"color": "green"}),
+            html.Span(correct_guesses, className="text-success-light"),
             "/",
-            html.Span(wrong_guesses, style={"color": "red"}),
+            html.Span(wrong_guesses, className="text-danger-light"),
             "/",
-            html.Span(spec_guesses, style={"color": "gray"}),
+            html.Span(spec_guesses, className="text-neutral-light"),
         ],
         style={"text-align": "center"},
         className="card-text",

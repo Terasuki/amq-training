@@ -7,6 +7,13 @@ from dash import html, dcc, callback, Output, Input, dash_table, register_page
 
 from src.utilities import get_song_links, get_last_song_matches, get_previously_correct
 from src.objects import card
+from src.theme import (
+    table_style_table,
+    table_style_cell,
+    table_style_header,
+    table_conditional_correct,
+    table_header_conditional_correct,
+)
 
 register_page(__name__)
 
@@ -47,45 +54,15 @@ layout = dbc.Container(
                                 columns=[],
                                 data=[],
                                 style_as_list_view=True,
-                                style_table={
-                                    "width": "100%",
-                                    "overflowX": "auto",
-                                    "border": "thin lightgrey solid",
-                                },
-                                style_cell={
-                                    "textAlign": "center",
-                                    "padding": "5px",
-                                    "whiteSpace": "normal",
-                                },
-                                style_header={
-                                    "backgroundColor": "rgb(30, 30, 30)",
-                                    "color": "white",
-                                },
-                                style_data_conditional=[
-                                    {
-                                        "if": {"filter_query": "{correct} = 1"},
-                                        "backgroundColor": "green",
-                                        "color": "white",
-                                    },
-                                    {
-                                        "if": {"filter_query": "{correct} = 0"},
-                                        "backgroundColor": "red",
-                                        "color": "white",
-                                    },
-                                    {
-                                        "if": {"filter_query": "{correct} is nil"},
-                                        "backgroundColor": "gray",
-                                        "color": "white",
-                                    },
-                                    {"if": {"column_id": "correct"}, "display": "None"},
-                                ],
-                                style_header_conditional=[
-                                    {"if": {"column_id": "correct"}, "display": "None"}
-                                ],
+                                style_table=table_style_table(),
+                                style_cell=table_style_cell(),
+                                style_header=table_style_header(),
+                                style_data_conditional=table_conditional_correct(),
+                                style_header_conditional=table_header_conditional_correct(),
                             ),
                         ]
                     ),
-                    className="shadow-sm mb-1",
+                    className="mb-1",
                 ),
                 width=12,
             )
@@ -126,11 +103,11 @@ def update_dashboard(n):
     correct, wrong, spec = get_previously_correct(ls_matches)
     history_summary = html.P(
         [
-            html.Span(correct, style={"color": "green"}),
+            html.Span(correct, className="text-success-light"),
             "/",
-            html.Span(wrong, style={"color": "red"}),
+            html.Span(wrong, className="text-danger-light"),
             "/",
-            html.Span(spec, style={"color": "gray"}),
+            html.Span(spec, className="text-neutral-light"),
         ],
         className="card-text",
     )

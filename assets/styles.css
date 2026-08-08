@@ -1,20 +1,323 @@
+/* ==========================================================================
+   AMQ Song List -- Pastel Dream design system
+   ==========================================================================
+   Palette:
+     --petal-frost : #ffd6ff
+     --mauve       : #e7c6ff
+     --mauve-2     : #c8b6ff
+     --periwinkle  : #b8c0ff
+     --periwinkle-2: #bbd0ff
+   Font: Montserrat.
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap");
+
+:root {
+  --petal-frost: #ffd6ff;
+  --mauve: #e7c6ff;
+  --mauve-2: #c8b6ff;
+  --periwinkle: #b8c0ff;
+  --periwinkle-2: #bbd0ff;
+
+  /* Deepened variants. */
+  --periwinkle-deep: #7b86e8;
+  --mauve-deep: #9c82e6;
+
+  --ink: #3d3358;
+  --ink-soft: #6b5f8a;
+  --surface: #fffaff;
+
+  /* Light primary/secondary text */
+  --text-primary: #fffaff;
+  --text-secondary: rgba(255, 250, 255, 0.8);
+  --text-shadow: 0 1px 3px rgba(61, 51, 88, 0.3);
+
+  --success: #cdead9;
+  --success-text: #2f5d3a;
+  --danger: #f8d6dd;
+  --danger-text: #7a2e3d;
+  --neutral: #e6e1f0;
+  --neutral-text: #5c5570;
+
+  /* For correct/incorrect/spectated counts */
+  --success-text-light: #4f9169;
+  --danger-text-light: #d1607f;
+  --neutral-text-light: #8f84ab;
+
+  --shadow-soft: none;
+  --shadow-lift: none;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+
+  --font-family: "Montserrat", "Helvetica Neue", Arial, sans-serif;
+
+  --bs-body-font-family: var(--font-family);
+  --bs-body-bg: transparent;
+  --bs-body-color: var(--text-primary);
+  --bs-primary: var(--periwinkle);
+  --bs-primary-rgb: 184, 192, 255;
+  --bs-link-color: var(--petal-frost);
+  --bs-link-color-rgb: 255, 214, 255;
+  --bs-link-hover-color: var(--surface);
+  --bs-border-radius: var(--radius-sm);
+  --bs-border-radius-lg: var(--radius-lg);
+  --bs-border-radius-sm: 8px;
+  --bs-border-radius-pill: var(--radius-pill);
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  font-family: var(--font-family);
+  color: var(--text-primary);
+  background: var(--periwinkle);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-family);
+  font-weight: 700;
+  color: var(--text-primary);
+  text-shadow: var(--text-shadow);
+  letter-spacing: 0.01em;
+}
+
 p {
-    color: white;
-    font-size: 1.25rem;
+  color: var(--text-primary);
+  font-size: 1.1rem;
 }
 
-h5 {
-    font-size: 1.5rem;
+a {
+  color: var(--text-primary);
+  text-shadow: var(--text-shadow);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 214, 255, 0.6);
 }
 
-.dash-table-container .pagination {
-    color: green;
-    font-size: 16px;
-    font-weight: bold;
+a:hover {
+  color: var(--petal-frost);
+}
+
+/* --------------------------------------------------------------------- */
+/* Top navigation                                                        */
+/* --------------------------------------------------------------------- */
+
+.app-nav {
+  padding: 0.9em 1.2em;
+}
+
+.app-nav .dropdown-toggle,
+.app-nav .btn {
+  background: var(--surface);
+  color: var(--ink);
+  border: none;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  padding: 0.5em 1.4em;
+  box-shadow: var(--shadow-soft);
+}
+
+.app-nav .dropdown-toggle:hover,
+.app-nav .dropdown-toggle:focus,
+.app-nav .btn:hover,
+.app-nav .btn:focus {
+  background: var(--periwinkle-2);
+  color: var(--ink);
+  box-shadow: var(--shadow-lift);
+}
+
+.dropdown-menu {
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lift);
+  padding: 0.4em;
+  background: var(--surface);
+}
+
+.dropdown-item {
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: var(--periwinkle-2);
+  color: var(--ink);
+}
+
+/* --------------------------------------------------------------------- */
+/* Buttons                                                               */
+/* --------------------------------------------------------------------- */
+
+.btn {
+  font-family: var(--font-family);
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  border: none;
+}
+
+.btn-primary {
+  background-color: var(--periwinkle) !important;
+  border-color: var(--periwinkle) !important;
+  color: var(--text-primary) !important;
+  text-shadow: var(--text-shadow);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: var(--periwinkle-deep) !important;
+  border-color: var(--periwinkle-deep) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-lift);
+}
+
+/* --------------------------------------------------------------------- */
+/* Cards                                                                 */
+/* --------------------------------------------------------------------- */
+
+.card {
+  background: var(--mauve);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+.card-title {
+  color: var(--text-primary);
+  text-shadow: var(--text-shadow);
+  font-weight: 600;
+}
+
+.card-text {
+  color: var(--text-primary);
+  text-shadow: var(--text-shadow);
 }
 
 .card-contents {
-    color: white;
-    text-align: center;
-    font-size: 1.25em;
+  color: var(--text-primary);
+  text-shadow: var(--text-shadow);
+  text-align: center;
+  font-size: 1.5em;
+  font-weight: 700;
+}
+
+/* Palette rotation for KPI / info cards -- pair with className on the
+   dbc.Card so consecutive cards read as distinct, on-brand tiles. */
+.card-tint-0 {
+  background: var(--petal-frost);
+}
+.card-tint-1 {
+  background: var(--mauve);
+}
+.card-tint-2 {
+  background: var(--mauve-2);
+}
+.card-tint-3 {
+  background: var(--periwinkle);
+}
+.card-tint-4 {
+  background: var(--periwinkle-2);
+}
+
+/* Correct/incorrect/spectated counts */
+.text-success-light {
+  color: var(--success-text-light);
+  font-weight: 600;
+}
+
+.text-danger-light {
+  color: var(--danger-text-light);
+  font-weight: 600;
+}
+
+.text-neutral-light {
+  color: var(--neutral-text-light);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------- */
+/* Loading spinner                                                       */
+/* --------------------------------------------------------------------- */
+
+.spinner-border {
+  color: var(--periwinkle-deep) !important;
+}
+
+/* --------------------------------------------------------------------- */
+/* Dash DataTable                                                        */
+/* --------------------------------------------------------------------- */
+
+.dash-table-container {
+  font-family: var(--font-family);
+}
+
+.dash-spreadsheet-container,
+.dash-spreadsheet-inner {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.dash-spreadsheet-container table {
+  border-collapse: separate !important;
+}
+
+.dash-filter input {
+  font-family: var(--font-family);
+  background-color: var(--surface) !important;
+  color: var(--ink) !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid rgba(61, 51, 88, 0.15) !important;
+}
+
+.dash-table-container .pagination,
+.dash-spreadsheet-pagination * {
+  color: var(--ink);
+  font-family: var(--font-family);
+  font-weight: 600;
+}
+
+.dash-spreadsheet-pagination button {
+  background: var(--surface);
+  border: none !important;
+  border-radius: var(--radius-pill) !important;
+  color: var(--ink) !important;
+  margin: 0 2px;
+}
+
+.dash-spreadsheet-pagination button:hover:enabled {
+  background: var(--periwinkle-2) !important;
+}
+
+.dash-spreadsheet-pagination button:disabled {
+  color: var(--ink-soft) !important;
+  opacity: 0.5;
+}
+
+.dash-spreadsheet-pagination .current-page-input {
+  font-family: var(--font-family);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(61, 51, 88, 0.15);
 }

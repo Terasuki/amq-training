@@ -16,6 +16,16 @@ import sqlite3
 import plotly.express as px
 from src.utilities import get_previously_correct
 from src.objects import card
+from src.theme import (
+    SUCCESS_CHART,
+    DANGER_CHART,
+    NEUTRAL_CHART,
+    INK,
+    table_style_table,
+    table_style_cell,
+    table_style_header,
+    table_style_data,
+)
 
 register_page(__name__, path="/")
 
@@ -34,10 +44,10 @@ def generate_table_data(stats_list):
     for s in stats_list:
         stat_str = (
             f"<div style='text-align: center;'>"
-            f"<span style='color: green;'>{s['c']}</span> / "
-            f"<span style='color: red;'>{s['w']}</span> / "
-            f"<span style='color: gray;'>{s['s']}</span> "
-            f"(<span style='color: white;font-weight: bold;'>{s['total']}</span>)"
+            f"<span class='text-success-light'>{s['c']}</span> / "
+            f"<span class='text-danger-light'>{s['w']}</span> / "
+            f"<span class='text-neutral-light'>{s['s']}</span> "
+            f"(<span style='color: {INK};font-weight: bold;'>{s['total']}</span>)"
             f"</div>"
         )
         data_list.append({"name": s["name"], "artist": s["artist"], "stats": stat_str})
@@ -59,7 +69,7 @@ layout = dbc.Container(
         ),
         dbc.Spinner(
             id="loading-spinner",
-            color="white",
+            color="primary",
             type="border",
             fullscreen=False,
             spinner_style={"width": "5rem", "height": "5rem", "borderWidth": "0.5rem"},
@@ -98,26 +108,12 @@ layout = dbc.Container(
                                             "presentation": "markdown",
                                         },
                                     ],
-                                    style_table={
-                                        "width": "100%",
-                                        "overflowX": "auto",
-                                        "overflowY": "auto",
-                                        "border": "thin lightgrey solid",
-                                    },
-                                    style_cell={
-                                        "textAlign": "center",
-                                        "padding": "5px",
-                                        "whiteSpace": "normal",
-                                        "height": "auto",
-                                    },
-                                    style_header={
-                                        "backgroundColor": "rgb(30, 30, 30)",
-                                        "color": "white",
-                                    },
+                                    style_table=table_style_table(),
+                                    style_cell=table_style_cell(),
+                                    style_header=table_style_header(),
                                     style_data={
                                         "cursor": "pointer",
-                                        "backgroundColor": "black",
-                                        "color": "white",
+                                        **table_style_data(),
                                     },
                                     row_selectable=False,
                                     markdown_options={"html": True},
@@ -142,26 +138,12 @@ layout = dbc.Container(
                                             "presentation": "markdown",
                                         },
                                     ],
-                                    style_table={
-                                        "width": "100%",
-                                        "overflowX": "auto",
-                                        "overflowY": "auto",
-                                        "border": "thin lightgrey solid",
-                                    },
-                                    style_cell={
-                                        "textAlign": "center",
-                                        "padding": "5px",
-                                        "whiteSpace": "normal",
-                                        "height": "auto",
-                                    },
-                                    style_header={
-                                        "backgroundColor": "rgb(30, 30, 30)",
-                                        "color": "white",
-                                    },
+                                    style_table=table_style_table(),
+                                    style_cell=table_style_cell(),
+                                    style_header=table_style_header(),
                                     style_data={
                                         "cursor": "pointer",
-                                        "backgroundColor": "black",
-                                        "color": "white",
+                                        **table_style_data(),
                                     },
                                     row_selectable=False,
                                     markdown_options={"html": True},
@@ -224,9 +206,9 @@ def update_dashboard(n_clicks):
         names=outcome_counts.index,
         color=outcome_counts.index,
         color_discrete_map={
-            "Correct": "green",
-            "Incorrect": "red",
-            "Spectated": "gray",
+            "Correct": SUCCESS_CHART,
+            "Incorrect": DANGER_CHART,
+            "Spectated": NEUTRAL_CHART,
         },
     )
     pie_fig.update_layout(margin=dict(t=40, l=20, r=20, b=20))
