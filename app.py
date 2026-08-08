@@ -9,9 +9,11 @@ import dash_bootstrap_components as dbc
 from flask import Flask, request, jsonify, redirect, Response
 from dash import Dash, html, page_container, dcc
 
-from src.theme import get_pastel_template
+from src.theme import get_pastel_template, write_css_variables
 
 app = Flask(__name__)
+
+write_css_variables()
 
 dashboard = Dash(
     __name__,

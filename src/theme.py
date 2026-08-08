@@ -1,9 +1,14 @@
 """
-Central definition of the app's pastel design system.
+Single source of truth for the app's pastel design system.
 
-Keep this in sync with the CSS custom properties defined in assets/styles.css --
-the hex values here should always match the ones in :root there.
+Every color used by the app -- in Plotly charts and in the page CSS -- is
+defined here. The CSS custom properties in assets/styles.css are generated
+from CSS_VARIABLES by write_css_variables() (called on app startup in
+app.py) into assets/_generated_colors.css, so colors never need to be
+hand-copied into the stylesheet.
 """
+
+from pathlib import Path
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -17,30 +22,37 @@ PERIWINKLE_2 = "#bbd0ff"
 
 PALETTE = [PETAL_FROST, MAUVE, MAUVE_2, PERIWINKLE, PERIWINKLE_2]
 
+# Deepened shades used for hover/active states in assets/styles.css.
+PERIWINKLE_DEEP = "#7b86e8"
+MAUVE_DEEP = "#9c82e6"
+
 # --- Text ---
 INK = "#3d3358"
 INK_SOFT = "#6b5f8a"
+SURFACE = "#fffaff"
 
 # Primary/secondary text read directly against the pastel page and card
-# backgrounds. Keep in sync with --text-primary / --text-secondary in
-# assets/styles.css.
-TEXT_PRIMARY = "#fffaff"
+# backgrounds.
+TEXT_PRIMARY = "#8356F5"
 TEXT_SECONDARY = "rgba(255, 250, 255, 0.8)"
 
 # --- Colors for correct / incorrect / spectated ---
 SUCCESS = "#cdead9"
 SUCCESS_TEXT = "#2f5d3a"
+SUCCESS_TEXT_LIGHT = "#4f9169"
 SUCCESS_CHART = "#a8d9bc"
 
 DANGER = "#f8d6dd"
 DANGER_TEXT = "#7a2e3d"
+DANGER_TEXT_LIGHT = "#d1607f"
 DANGER_CHART = "#f0b0bf"
 
 NEUTRAL = "#e6e1f0"
 NEUTRAL_TEXT = "#5c5570"
+NEUTRAL_TEXT_LIGHT = "#8f84ab"
 NEUTRAL_CHART = "#c3b9d9"
 
-# --- Deepened core palette ---
+# --- Deepened core palette (Plotly chart colorway) ---
 CHART_COLORWAY = [
     "#8f9aff",  # periwinkle, deepened
     "#c79eea",  # mauve, deepened
@@ -49,7 +61,67 @@ CHART_COLORWAY = [
     "#86a8f0",  # periwinkle-2, deepened
 ]
 
-FONT_FAMILY = "Montserrat, 'Helvetica Neue', Arial, sans-serif"
+# --- Font ---
+FONT_PRIMARY = "Montserrat"
+FONT_FALLBACK = "'Helvetica Neue', Arial, sans-serif"
+FONT_FAMILY = f"{FONT_PRIMARY}, {FONT_FALLBACK}"
+FONT_WEIGHTS = "ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400"
+GOOGLE_FONTS_URL = (
+    f"https://fonts.googleapis.com/css2?family={FONT_PRIMARY}:{FONT_WEIGHTS}&display=swap"
+)
+
+
+def _hex_to_rgb_triplet(hex_color: str) -> str:
+    hex_color = hex_color.lstrip("#")
+    r, g, b = (int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+    return f"{r}, {g}, {b}"
+
+
+# CSS custom property name (without the leading --) -> value. This is what
+# gets written into assets/_generated_colors.css; add new colors here rather
+# than editing CSS directly.
+CSS_VARIABLES = {
+    "petal-frost": PETAL_FROST,
+    "mauve": MAUVE,
+    "mauve-2": MAUVE_2,
+    "periwinkle": PERIWINKLE,
+    "periwinkle-2": PERIWINKLE_2,
+    "periwinkle-deep": PERIWINKLE_DEEP,
+    "mauve-deep": MAUVE_DEEP,
+    "ink": INK,
+    "ink-soft": INK_SOFT,
+    "surface": SURFACE,
+    "text-primary": TEXT_PRIMARY,
+    "text-secondary": TEXT_SECONDARY,
+    "text-shadow": f"0 1px 3px rgba({_hex_to_rgb_triplet(INK)}, 0.3)",
+    "success": SUCCESS,
+    "success-text": SUCCESS_TEXT,
+    "success-text-light": SUCCESS_TEXT_LIGHT,
+    "danger": DANGER,
+    "danger-text": DANGER_TEXT,
+    "danger-text-light": DANGER_TEXT_LIGHT,
+    "neutral": NEUTRAL,
+    "neutral-text": NEUTRAL_TEXT,
+    "neutral-text-light": NEUTRAL_TEXT_LIGHT,
+    "bs-primary-rgb": _hex_to_rgb_triplet(PERIWINKLE),
+    "bs-link-color-rgb": _hex_to_rgb_triplet(PETAL_FROST),
+    "font-family": FONT_FAMILY,
+}
+
+ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
+GENERATED_CSS_PATH = ASSETS_DIR / "_generated_theme.css"
+
+
+def write_css_variables(path: Path = GENERATED_CSS_PATH) -> None:
+    """Write CSS_VARIABLES (colors + font) out for assets/styles.css to consume via var()."""
+    declarations = "\n".join(f"  --{name}: {value};" for name, value in CSS_VARIABLES.items())
+    css = (
+        f'@import url("{GOOGLE_FONTS_URL}");\n'
+        "/* Auto-generated from src/theme.py -- do not edit directly.\n"
+        "   Regenerated on every app startup by write_css_variables(). */\n"
+        f":root {{\n{declarations}\n}}\n"
+    )
+    path.write_text(css)
 
 
 def get_pastel_template() -> go.layout.Template:
