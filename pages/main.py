@@ -39,6 +39,61 @@ def classify(row):
         return "Incorrect"
 
 
+def chart_card(title, graph_id, tint=0):
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.H5(title, style={"textAlign": "center"}, className="card-title"),
+                dcc.Graph(
+                    id=graph_id,
+                    config={"responsive": True},
+                    style={"height": "360px"},
+                ),
+            ]
+        ),
+        className=f"h-100 card-tint-{tint}",
+    )
+
+
+def table_card(title, table, tint=0):
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.H5(title, style={"textAlign": "center"}, className="card-title"),
+                table,
+            ]
+        ),
+        className=f"h-100 card-tint-{tint}",
+    )
+
+
+def song_stats_datatable(table_id):
+    return dash_table.DataTable(
+        id=table_id,
+        columns=[
+            {"name": "Song name", "id": "name"},
+            {"name": "Artist", "id": "artist"},
+            {"name": "History", "id": "stats", "presentation": "markdown"},
+        ],
+        style_table={**table_style_table(), "tableLayout": "fixed"},
+        style_cell={
+            **table_style_cell(),
+            "overflowWrap": "break-word",
+            "wordBreak": "break-word",
+        },
+        style_cell_conditional=[
+            {"if": {"column_id": "name"}, "width": "40%"},
+            {"if": {"column_id": "artist"}, "width": "30%"},
+            {"if": {"column_id": "stats"}, "width": "30%"},
+        ],
+        style_header=table_style_header(),
+        style_data={"cursor": "pointer", **table_style_data()},
+        row_selectable=False,
+        markdown_options={"html": True},
+        page_size=10,
+    )
+
+
 def generate_table_data(stats_list):
     data_list = []
     for s in stats_list:
@@ -77,83 +132,87 @@ layout = dbc.Container(
             children=[
                 dbc.Row(
                     [
-                        dbc.Col(card("Songs played", "songs_played"), width=2),
-                        dbc.Col(card("Guess rate", "guess_rate"), width=2),
-                        dbc.Col(card("Average guess time", "guess_time"), width=2),
-                        dbc.Col(card("Songs spectated", "songs_spec"), width=2),
+                        dbc.Col(
+                            card("Songs played", "songs_played", tint=0),
+                            xs=6,
+                            sm=6,
+                            md=3,
+                        ),
+                        dbc.Col(
+                            card("Guess rate", "guess_rate", tint=0),
+                            xs=6,
+                            sm=6,
+                            md=3,
+                        ),
+                        dbc.Col(
+                            card("Average guess time", "guess_time", tint=0),
+                            xs=6,
+                            sm=6,
+                            md=3,
+                        ),
+                        dbc.Col(
+                            card("Songs spectated", "songs_spec", tint=0),
+                            xs=6,
+                            sm=6,
+                            md=3,
+                        ),
                     ],
-                    justify="center",
+                    className="g-4 mb-4",
                 ),
                 dbc.Row(
                     [
-                        dbc.Col(dcc.Graph(id="correct_incorrect_chart"), width=6),
-                        dbc.Col(dcc.Graph(id="guess_time_difficulty_chart"), width=6),
-                    ]
+                        dbc.Col(
+                            chart_card(
+                                "",
+                                "correct_incorrect_chart",
+                                tint=1,
+                            ),
+                            xs=12,
+                            lg=6,
+                        ),
+                        dbc.Col(
+                            chart_card(
+                                "",
+                                "guess_time_difficulty_chart",
+                                tint=1,
+                            ),
+                            xs=12,
+                            lg=6,
+                        ),
+                    ],
+                    className="g-4 mb-4",
                 ),
-                dbc.Row(dbc.Col(dcc.Graph(id="songs_over_time_chart"), width=12)),
+                dbc.Row(
+                    dbc.Col(
+                        chart_card(
+                            "Songs played over time", "songs_over_time_chart", tint=2
+                        ),
+                        xs=12,
+                    ),
+                    className="g-4 mb-4",
+                ),
                 dbc.Row(
                     [
                         dbc.Col(
-                            [
-                                html.H4(
-                                    "Top listened songs", style={"textAlign": "center"}
-                                ),
-                                dash_table.DataTable(
-                                    id="common_songs_table",
-                                    columns=[
-                                        {"name": "Song name", "id": "name"},
-                                        {"name": "Artist", "id": "artist"},
-                                        {
-                                            "name": "History",
-                                            "id": "stats",
-                                            "presentation": "markdown",
-                                        },
-                                    ],
-                                    style_table=table_style_table(),
-                                    style_cell=table_style_cell(),
-                                    style_header=table_style_header(),
-                                    style_data={
-                                        "cursor": "pointer",
-                                        **table_style_data(),
-                                    },
-                                    row_selectable=False,
-                                    markdown_options={"html": True},
-                                    page_size=10,
-                                ),
-                            ],
-                            width=6,
+                            table_card(
+                                "Top listened songs",
+                                song_stats_datatable("common_songs_table"),
+                                tint=3,
+                            ),
+                            xs=12,
+                            lg=6,
                         ),
                         dbc.Col(
-                            [
-                                html.H4(
-                                    "Top missed songs", style={"textAlign": "center"}
-                                ),
-                                dash_table.DataTable(
-                                    id="wrong_songs_table",
-                                    columns=[
-                                        {"name": "Song name", "id": "name"},
-                                        {"name": "Artist", "id": "artist"},
-                                        {
-                                            "name": "History",
-                                            "id": "stats",
-                                            "presentation": "markdown",
-                                        },
-                                    ],
-                                    style_table=table_style_table(),
-                                    style_cell=table_style_cell(),
-                                    style_header=table_style_header(),
-                                    style_data={
-                                        "cursor": "pointer",
-                                        **table_style_data(),
-                                    },
-                                    row_selectable=False,
-                                    markdown_options={"html": True},
-                                    page_size=10,
-                                ),
-                            ],
-                            width=6,
+                            table_card(
+                                "Top missed songs",
+                                song_stats_datatable("wrong_songs_table"),
+                                tint=3,
+                            ),
+                            xs=12,
+                            lg=6,
                         ),
-                    ]
+                    ],
+                    className="g-4 mb-4",
                 ),
             ],
         ),
