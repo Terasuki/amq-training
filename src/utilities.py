@@ -111,6 +111,46 @@ def get_previously_correct(
     return correct_guesses, wrong_guesses, spec_guesses
 
 
+def flag_repeat_confusions(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Flags plays where the user repeated an earlier wrong answer for the same song,
+    i.e. kept confusing the song with the same (wrong) anime.
+
+    Expects `data` sorted by timestamp ascending, with name, artist, correct and
+    self_answer columns. Answers are compared case-insensitively; blank and "..."
+    (no answer typed) never count as a confusion.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Play history.
+
+    Returns
+    -------
+    data : pd.DataFrame
+        Same data with three columns added:
+        `confused_with` - the normalized wrong answer typed, or NA when the play
+        was correct, spectated or left unanswered.
+        `confusion_chance` - the user played a song they had previously typed a
+        wrong answer for (participated, not spectated).
+        `repeat_confusion` - the user typed a wrong answer they had already given
+        for this song before.
+    """
+    song = [data["name"], data["artist"]]
+    answer = data["self_answer"].astype("string").str.strip().str.casefold()
+    typed_wrong = (data["correct"] == 0) & answer.notna() & ~answer.isin(["", "..."])
+
+    data["confused_with"] = answer.where(typed_wrong)
+
+    prior_wrongs = typed_wrong.groupby(song).cumsum() - typed_wrong
+    data["confusion_chance"] = data["correct"].notna() & (prior_wrongs > 0)
+
+    wrong = data.loc[typed_wrong]
+    seen_before = wrong.groupby(["name", "artist", answer[typed_wrong]]).cumcount() > 0
+    data["repeat_confusion"] = seen_before.reindex(data.index, fill_value=False)
+    return data
+
+
 def clean_full_data(raw_data: pd.DataFrame) -> pd.DataFrame:
     """
     Cleans raw data into user-friendly format.

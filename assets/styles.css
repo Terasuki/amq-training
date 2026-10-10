@@ -276,3 +276,17 @@ a:hover {
   border-radius: var(--radius-sm);
   border: 1px solid rgba(61, 51, 88, 0.15);
 }
+
+/* Secondary line under a KPI value, e.g. a recent-period comparison */
+.card-subtext {
+  font-size: 0.55em;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-shadow: none;
+  margin-top: 0.2em;
+}
+
+/* Keep KPI tiles the same height when one carries a subtext line */
+.kpi-row .card {
+  height: calc(100% - 1rem);
+}

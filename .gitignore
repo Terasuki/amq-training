@@ -174,3 +174,5 @@ assets/_generated_theme.css
 
 # Test work
 test_*
+
+backups/

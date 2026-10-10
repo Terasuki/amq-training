@@ -16,6 +16,7 @@ import sqlite3
 import io
 import plotly.express as px
 from src.objects import card
+from src.utilities import flag_repeat_confusions
 from src.theme import (
     SUCCESS_CHART,
     DANGER_CHART,
@@ -28,6 +29,10 @@ from src.theme import (
 )
 
 register_page(__name__, path="/")
+
+# Months with fewer chances than this are left off the repeat confusion trend,
+# since a handful of replays swings the rate wildly.
+MIN_MONTHLY_CONFUSION_CHANCES = 20
 
 
 def classify(row):
@@ -47,9 +52,10 @@ def chart_card(title, graph_id, tint=0):
                 dcc.Graph(
                     id=graph_id,
                     config={"responsive": True},
-                    style={"height": "360px"},
+                    style={"minHeight": "360px", "flex": "1"},
                 ),
-            ]
+            ],
+            className="d-flex flex-column",
         ),
         className=f"h-100 card-tint-{tint}",
     )
@@ -109,6 +115,119 @@ def generate_table_data(stats_list):
     return data_list
 
 
+def confusions_datatable(table_id):
+    return dash_table.DataTable(
+        id=table_id,
+        columns=[
+            {"name": "Song name", "id": "name"},
+            {"name": "Anime", "id": "anime"},
+            {"name": "Your answer", "id": "answer"},
+            {"name": "Times", "id": "times"},
+        ],
+        style_table={**table_style_table(), "tableLayout": "fixed"},
+        style_cell={
+            **table_style_cell(),
+            "overflowWrap": "break-word",
+            "wordBreak": "break-word",
+        },
+        style_cell_conditional=[
+            {"if": {"column_id": "name"}, "width": "30%"},
+            {"if": {"column_id": "anime"}, "width": "30%"},
+            {"if": {"column_id": "answer"}, "width": "28%"},
+            {"if": {"column_id": "times"}, "width": "12%"},
+        ],
+        style_header=table_style_header(),
+        style_data={"cursor": "pointer", **table_style_data()},
+        row_selectable=False,
+        page_size=10,
+    )
+
+
+def top_repeat_confusions(data, top_k=10):
+    """
+    Songs most often answered with the same wrong anime, most recent first on ties.
+    Rows keep `artist` (not shown) so a click can open the song's details.
+    """
+    wrong = data.loc[data["confused_with"].notna()]
+    confusions = (
+        wrong.groupby(["name", "artist", "confused_with"])
+        .agg(
+            times=("timestamp", "size"),
+            last_seen=("timestamp", "max"),
+            anime=("romaji_title", "last"),
+            answer=("self_answer", "last"),
+        )
+        .reset_index()
+    )
+    confusions = confusions.loc[confusions["times"] > 1].sort_values(
+        ["times", "last_seen"], ascending=False
+    )
+    confusions["answer"] = confusions["answer"].str.strip()
+    return confusions.head(top_k)[
+        ["name", "artist", "anime", "answer", "times"]
+    ].to_dict("records")
+
+
+def repeat_confusion_kpi(data):
+    """
+    Share of replays of previously confused songs where the same wrong anime
+    was answered again, all time, with the last 30 days underneath.
+    """
+
+    def rate(rows, show_counts=False):
+        repeats = rows["repeat_confusion"].sum()
+        chances = rows["confusion_chance"].sum()
+        if chances == 0:
+            return "–"
+        text = f"{repeats / chances * 100:.1f} %"
+        return f"{text} ({repeats}/{chances})" if show_counts else text
+
+    recent = data.loc[
+        data["timestamp"] >= data["timestamp"].max() - pd.Timedelta(days=30)
+    ]
+
+    return [
+        html.Div(rate(data)),
+        html.Div(
+            f"Last 30 days: {rate(recent, show_counts=True)}",
+            className="card-subtext",
+        ),
+    ]
+
+
+def repeat_confusion_trend(data):
+    monthly = (
+        data.set_index("timestamp")[["repeat_confusion", "confusion_chance"]]
+        .resample("MS")
+        .sum()
+    )
+    monthly = monthly.loc[
+        monthly["confusion_chance"] >= MIN_MONTHLY_CONFUSION_CHANCES
+    ].reset_index()
+    monthly["rate"] = monthly["repeat_confusion"] / monthly["confusion_chance"] * 100
+
+    fig = px.line(
+        monthly,
+        x="timestamp",
+        y="rate",
+        custom_data=["repeat_confusion", "confusion_chance"],
+        labels={"rate": "Same wrong answer repeated (%)", "timestamp": "Month"},
+    )
+    fig.update_traces(
+        mode="lines+markers",
+        line=dict(width=2),
+        marker=dict(size=8),
+        hovertemplate=(
+            "%{x|%b %Y}<br><b>%{y:.1f} %</b>"
+            "<br>%{customdata[0]} of %{customdata[1]} replays of confused songs"
+            "<extra></extra>"
+        ),
+    )
+    fig.update_yaxes(rangemode="tozero")
+    fig.update_layout(margin=dict(t=40, l=20, r=20, b=20))
+    return fig
+
+
 layout = dbc.Container(
     [
         html.H2("Home", style={"textAlign": "center", "marginBottom": "1em"}),
@@ -135,29 +254,35 @@ layout = dbc.Container(
                         dbc.Col(
                             card("Songs played", "songs_played", tint=0),
                             xs=6,
-                            sm=6,
-                            md=3,
+                            md=4,
+                            lg=True,
                         ),
                         dbc.Col(
                             card("Guess rate", "guess_rate", tint=0),
                             xs=6,
-                            sm=6,
-                            md=3,
+                            md=4,
+                            lg=True,
                         ),
                         dbc.Col(
                             card("Average guess time", "guess_time", tint=0),
                             xs=6,
-                            sm=6,
-                            md=3,
+                            md=4,
+                            lg=True,
                         ),
                         dbc.Col(
                             card("Songs spectated", "songs_spec", tint=0),
                             xs=6,
-                            sm=6,
-                            md=3,
+                            md=4,
+                            lg=True,
+                        ),
+                        dbc.Col(
+                            card("Repeat confusions", "repeat_confusions", tint=0),
+                            xs=12,
+                            md=4,
+                            lg=True,
                         ),
                     ],
-                    className="g-4 mb-4",
+                    className="g-4 mb-4 kpi-row",
                 ),
                 dbc.Row(
                     [
@@ -189,6 +314,29 @@ layout = dbc.Container(
                         ),
                         xs=12,
                     ),
+                    className="g-4 mb-4",
+                ),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            chart_card(
+                                "Repeat confusions over time",
+                                "repeat_confusions_chart",
+                                tint=2,
+                            ),
+                            xs=12,
+                            lg=6,
+                        ),
+                        dbc.Col(
+                            table_card(
+                                "Top repeat confusions",
+                                confusions_datatable("confusions_table"),
+                                tint=2,
+                            ),
+                            xs=12,
+                            lg=6,
+                        ),
+                    ],
                     className="g-4 mb-4",
                 ),
                 dbc.Row(
@@ -233,7 +381,8 @@ def refresh_dashboard_data(n_clicks, cached_data):
 
     conn = sqlite3.connect("data.db")
     query = """
-        SELECT timestamp, difficulty, guess_time, correct, self_answer, name, artist
+        SELECT timestamp, difficulty, guess_time, correct, self_answer, name, artist,
+            romaji_title
         FROM amq_data
         ORDER BY timestamp ASC
     """
@@ -248,16 +397,19 @@ def refresh_dashboard_data(n_clicks, cached_data):
     Output("guess_rate", "children"),
     Output("guess_time", "children"),
     Output("songs_spec", "children"),
+    Output("repeat_confusions", "children"),
     Output("correct_incorrect_chart", "figure"),
     Output("guess_time_difficulty_chart", "figure"),
     Output("songs_over_time_chart", "figure"),
+    Output("repeat_confusions_chart", "figure"),
     Output("common_songs_table", "data"),
     Output("wrong_songs_table", "data"),
+    Output("confusions_table", "data"),
     Input("dashboard_data_store", "data"),
 )
 def update_dashboard(stored_data):
     if not stored_data:
-        return (no_update,) * 9
+        return (no_update,) * 12
 
     data = pd.read_json(io.StringIO(stored_data), orient="split")
     data["timestamp"] = pd.to_datetime(data["timestamp"])
@@ -275,6 +427,10 @@ def update_dashboard(stored_data):
     kpi_rate = f"{guess_rate:.1f} %"
     kpi_avg_time = f"{avg_guess_time:.0f} ms"
     kpi_spec = f"{spec_count}"
+
+    data = flag_repeat_confusions(data)
+    kpi_confusions = repeat_confusion_kpi(data)
+    confusion_fig = repeat_confusion_trend(data)
 
     data["outcome"] = data.apply(classify, axis=1)
     outcome_counts = data["outcome"].value_counts()
@@ -350,11 +506,14 @@ def update_dashboard(stored_data):
         kpi_rate,
         kpi_avg_time,
         kpi_spec,
+        kpi_confusions,
         pie_fig,
         bar_fig,
         line_fig,
+        confusion_fig,
         generate_table_data(common_list),
         generate_table_data(wrong_list),
+        top_repeat_confusions(data),
     )
 
 
@@ -363,11 +522,20 @@ def update_dashboard(stored_data):
     Output("selected-song", "data", allow_duplicate=True),
     Input("common_songs_table", "active_cell"),
     Input("wrong_songs_table", "active_cell"),
+    Input("confusions_table", "active_cell"),
     State("common_songs_table", "data"),
     State("wrong_songs_table", "data"),
+    State("confusions_table", "data"),
     prevent_initial_call=True,
 )
-def handle_row_click(active_common, active_wrong, data_common, data_wrong):
+def handle_row_click(
+    active_common,
+    active_wrong,
+    active_confusions,
+    data_common,
+    data_wrong,
+    data_confusions,
+):
     triggered_id = ctx.triggered_id
 
     if triggered_id == "common_songs_table":
@@ -376,6 +544,9 @@ def handle_row_click(active_common, active_wrong, data_common, data_wrong):
     elif triggered_id == "wrong_songs_table":
         active_cell = active_wrong
         data = data_wrong
+    elif triggered_id == "confusions_table":
+        active_cell = active_confusions
+        data = data_confusions
     else:
         return no_update, no_update
 
