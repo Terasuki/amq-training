@@ -1,6 +1,6 @@
 # AMQ Utils
 
-AMQ Utils is a local Flask/Dash web app that provides several utilities:
+AMQ Utils is a local web app (a Flask server with a React UI) that provides several utilities:
 
 - Local database songs played
 - Live song history of the last song played
@@ -8,7 +8,7 @@ AMQ Utils is a local Flask/Dash web app that provides several utilities:
 
 ## Usage instructions
 
-AMQ Utils requires of a external Tampermonkey script to receive data from AMQ. 
+AMQ Utils requires of a external Tampermonkey script to receive data from AMQ.
 
 ### Installing the script
 
@@ -18,18 +18,30 @@ Tampermonkey should automatically pop up for installation, otherwise manually co
 
 ### Running the server
 
-You will need a valid Python installation. The project is tested on Python 3.14.3.
+You will need a valid Python installation, and Node.js to build the UI. The project is tested on Python 3.14.3 and Node.js 24.
 
 Install dependencies,
 
 `pip install -r requirements.txt`.
 
-Then,
+Build the UI,
+
+`cd frontend && npm install && npm run build`.
+
+Then, from the repository root,
 
 `python app.py`,
 
-which starts a Flask development server (receives the data from the userscript).
+which starts a Flask development server (receives the data from the userscript and serves the UI).
 
 The dashboard itself can be accessed on the localhost link in the terminal.
 
-*Warning: this opens your computer to potential bad actors if they know which port you are hosting the server. I am not responsible for any damage this may incur.*
+_Warning: this opens your computer to potential bad actors if they know which port you are hosting the server. I am not responsible for any damage this may incur._
+
+### Working on the UI
+
+The UI lives in `frontend/` (React + Vite). With `python app.py` running, start Vite's dev server,
+
+`cd frontend && npm run dev`,
+
+and open the link it prints.

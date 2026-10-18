@@ -2,37 +2,33 @@ import json
 import sqlite3
 
 from datetime import datetime
+from pathlib import Path
 from typing import Tuple
 
-import dash_bootstrap_components as dbc
-
-from flask import Flask, request, jsonify, redirect, Response
-from dash import Dash, html, page_container, dcc
-
-from src.theme import get_pastel_template, write_css_variables
-
-app = Flask(__name__)
-
-write_css_variables()
-
-dashboard = Dash(
-    __name__,
-    server=app,
-    url_base_pathname="/main/",
-    external_stylesheets=[dbc.themes.BOOTSTRAP, "/assets/styles.css"],
-    update_title=None,
-    use_pages=True,
+from flask import (
+    Flask,
+    abort,
+    request,
+    jsonify,
+    redirect,
+    Response,
+    send_from_directory,
 )
 
-dashboard.title = "AMQ Song List"
-get_pastel_template()
+from src.api import DB_PATH, api
+
+# The React UI, built by `npm run build` in frontend/.
+FRONTEND_DIR = Path(__file__).resolve().parent / "frontend" / "dist"
+
+app = Flask(__name__, static_folder=None)
+app.register_blueprint(api)
 
 
 def init_db():
     """
     Function to start a database table if one does not exist yet.
     """
-    conn = sqlite3.connect("data.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
             CREATE TABLE IF NOT EXISTS amq_data (
@@ -82,7 +78,7 @@ def receive_data() -> Tuple[Response, int]:
     season = raw_vintage.get("key", "").split(".")[-1].capitalize()
     year = raw_vintage.get("data", {}).get("year")
     vintage = f"{season} {year}" if year else season
-    conn = sqlite3.connect("data.db")
+    conn = sqlite3.connect(DB_PATH)
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -127,28 +123,34 @@ def receive_data() -> Tuple[Response, int]:
     return jsonify({"status": "success", "message": "Data saved"}), 200
 
 
-@app.route("/")
-def index():
-    return redirect("/main")
+@app.route("/main/", defaults={"page": ""})
+@app.route("/main/<path:page>")
+def legacy_page(page: str) -> Response:
+    """
+    Pages lived under /main/ when the UI was a Dash app; keeps old bookmarks working.
+    """
+    return redirect(f"/{page}")
 
 
-dropdown = html.Div(
-    [
-        dbc.DropdownMenu(
-            [
-                dbc.DropdownMenuItem("Home", href="/main/"),
-                dbc.DropdownMenuItem("Last Song", href="/main/last-song"),
-                dbc.DropdownMenuItem("All Songs", href="/main/all-songs"),
-            ],
-            label="Navigation",
-        ),
-        dcc.Store(id="selected-song", storage_type="session"),
-    ],
-    className="app-nav",
-    style={"margin": "auto", "text-align": "left"},
-)
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def frontend(path: str) -> Response:
+    """
+    Serves the built React app. Any other path without a file extension gets
+    index.html, so the UI's own routes (e.g. /last-song) work on reload.
+    """
+    if (FRONTEND_DIR / path).is_file():
+        return send_from_directory(FRONTEND_DIR, path)
+    if path.startswith("api/") or "." in Path(path).name:
+        abort(404)
+    if not (FRONTEND_DIR / "index.html").is_file():
+        return Response(
+            "The UI hasn't been built yet: run `npm install` and `npm run build` in frontend/.",
+            status=503,
+            mimetype="text/plain",
+        )
+    return send_from_directory(FRONTEND_DIR, "index.html")
 
-dashboard.layout = html.Div([dropdown, page_container])
 
 if __name__ == "__main__":
     init_db()

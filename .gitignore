@@ -166,11 +166,9 @@ cython_debug/
 
 # Data
 *.json
+!frontend/*.json
 *.parquet
 data.db
-
-# Generated from src/theme.py at app startup
-assets/_generated_theme.css
 
 # Test work
 test_*

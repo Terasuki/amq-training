@@ -1,33 +1,58 @@
 import json
-import pandas as pd
 import sqlite3
-import math
-from typing import List, Dict, Tuple
+from typing import Dict, List, Tuple
+
+import numpy as np
+import pandas as pd
+
+# What AMQ records as your answer when the answer box was never touched.
+BLANK_ANSWER = "\n\t\t\t\t\t\n\t\t\t\t"
+
+# Database column -> API field, for a row of a play history table.
+PLAY_FIELDS = {
+    "id": "id",
+    "timestamp": "timestamp",
+    "game_mode": "mode",
+    "ann_id": "annId",
+    "difficulty": "difficulty",
+    "start_sample": "startSample",
+    "video_length": "videoLength",
+    "guess_time": "guessTime",
+    "self_answer": "answer",
+    "outcome": "outcome",
+}
 
 
-def format_seconds(seconds_raw: float) -> str:
+def to_records(data: pd.DataFrame) -> List[Dict]:
     """
-    Formats raw seconds into minutes:seconds format.
+    Converts a DataFrame to JSON-safe records, with NaN as None.
 
     Parameters
     ----------
-    seconds_raw : float
-        Raw seconds to be converted.
+    data : pd.DataFrame
 
     Returns
     -------
-    time : str
-        The time equivalent in minutes:seconds format.
+    records : list of dict
     """
-    if seconds_raw is None or math.isnan(seconds_raw):
-        return "0:00"
-    minutes = int(seconds_raw // 60)
-    seconds = int(seconds_raw % 60)
-    return f"{minutes}:{seconds:02}"
+    return json.loads(data.to_json(orient="records", force_ascii=False))
 
 
-def get_song_links(row: pd.DataFrame) -> List[Dict]:
-    site_ids = json.loads(row.get("site_ids")[0])
+def get_song_links(site_ids_json: str) -> List[Dict]:
+    """
+    Links to an anime's page on each tracking site.
+
+    Parameters
+    ----------
+    site_ids_json : str
+        A play's `site_ids` column, a JSON object of the anime's site ids.
+
+    Returns
+    -------
+    links : list of dict
+        Each with the site `name` and the anime's `url` on it.
+    """
+    site_ids = json.loads(site_ids_json or "{}")
 
     links = [
         {
@@ -48,45 +73,32 @@ def get_song_links(row: pd.DataFrame) -> List[Dict]:
     return links
 
 
-def get_last_song_matches(row: pd.DataFrame, conn: sqlite3.Connection) -> pd.DataFrame:
-    song_name = row["name"][0]
-    song_artist = row["artist"][0]
-    matches_query = """
-            SELECT timestamp, game_mode, difficulty, self_answer, guess_time, start_sample, video_length, ann_id, correct, alt_answers
-            FROM amq_data 
-            WHERE name = ? AND artist = ?
-            ORDER BY timestamp DESC
-        """
-    matches = pd.read_sql_query(matches_query, conn, params=(song_name, song_artist))
-    matches["timestamp"] = pd.to_datetime(matches["timestamp"]).dt.strftime(
-        "%Y/%m/%d, %H:%M"
-    )
+def get_song_plays(name: str, artist: str, conn: sqlite3.Connection) -> pd.DataFrame:
+    """
+    Every play of a song, most recent first.
 
-    matches["Sample"] = (
-        matches["start_sample"].apply(format_seconds)
-        + "/"
-        + matches["video_length"].apply(format_seconds)
-    )
-    matches = matches.drop(["start_sample", "video_length"], axis=1).rename(
-        columns={
-            "timestamp": "Date",
-            "game_mode": "Mode",
-            "difficulty": "Diff.",
-            "self_answer": "Answer",
-            "guess_time": "Guess time",
-            "ann_id": "ANNID",
-        }
-    )
-    alt_answers = matches.iloc[-1]["alt_answers"]
-    matches = matches[
-        ["Date", "Mode", "ANNID", "Diff.", "Sample", "Guess time", "Answer", "correct"]
-    ]
+    Parameters
+    ----------
+    name : str
+    artist : str
+    conn : sqlite3.Connection
 
-    return matches, alt_answers
+    Returns
+    -------
+    plays : pd.DataFrame
+    """
+    query = """
+        SELECT id, timestamp, game_mode, difficulty, self_answer, guess_time,
+            start_sample, video_length, ann_id, correct, alt_answers
+        FROM amq_data
+        WHERE name = ? AND artist = ?
+        ORDER BY timestamp DESC
+    """
+    return pd.read_sql_query(query, conn, params=(name, artist))
 
 
 def get_previously_correct(
-    matches: pd.DataFrame, correct: str = "correct", selfAnswer: str = "Answer"
+    matches: pd.DataFrame, correct: str = "correct", selfAnswer: str = "self_answer"
 ) -> Tuple[int, int, int]:
     """
     Finds correctness of user's guesses from a song list in pd.DataFrame form.
@@ -105,10 +117,58 @@ def get_previously_correct(
     n_guesses = matches.shape[0]
     correct_guesses = matches.loc[matches[correct] == 1].shape[0]
     wrong_guesses = matches.loc[
-        (matches[correct] == 0) & ~(matches[selfAnswer] == "\n\t\t\t\t\t\n\t\t\t\t")
+        (matches[correct] == 0) & ~(matches[selfAnswer] == BLANK_ANSWER)
     ].shape[0]
     spec_guesses = n_guesses - correct_guesses - wrong_guesses
     return correct_guesses, wrong_guesses, spec_guesses
+
+
+def classify_plays(data: pd.DataFrame) -> pd.Series:
+    """
+    Outcome of each play as tinted in the tables: "correct", "wrong" or
+    "spectated". A play marked wrong with no guess time and a blank answer
+    counts as spectated.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Plays, with correct, guess_time and self_answer columns.
+
+    Returns
+    -------
+    outcome : pd.Series
+    """
+    blank_answer = data["self_answer"].fillna("").astype(str).str.strip().eq("")
+    unanswered = data["guess_time"].isna() & blank_answer
+    outcome = np.select(
+        [data["correct"] == 1, (data["correct"] == 0) & ~unanswered],
+        ["correct", "wrong"],
+        default="spectated",
+    )
+    return pd.Series(outcome, index=data.index)
+
+
+def song_history(plays: pd.DataFrame) -> Dict:
+    """
+    A song's history card: correct/wrong/spectated counts and one row per play.
+
+    Parameters
+    ----------
+    plays : pd.DataFrame
+        From get_song_plays.
+
+    Returns
+    -------
+    history : dict
+    """
+    correct, wrong, spectated = get_previously_correct(plays)
+    rows = plays.assign(outcome=classify_plays(plays)).rename(columns=PLAY_FIELDS)
+    return {
+        "correct": correct,
+        "wrong": wrong,
+        "spectated": spectated,
+        "plays": to_records(rows[list(PLAY_FIELDS.values())]),
+    }
 
 
 def flag_repeat_confusions(data: pd.DataFrame) -> pd.DataFrame:
@@ -149,44 +209,3 @@ def flag_repeat_confusions(data: pd.DataFrame) -> pd.DataFrame:
     seen_before = wrong.groupby(["name", "artist", answer[typed_wrong]]).cumcount() > 0
     data["repeat_confusion"] = seen_before.reindex(data.index, fill_value=False)
     return data
-
-
-def clean_full_data(raw_data: pd.DataFrame) -> pd.DataFrame:
-    """
-    Cleans raw data into user-friendly format.
-
-    Parameters
-    ----------
-    raw_data : pd.DataFrame
-        Raw data.
-
-    Returns
-    -------
-    clean_data : pd.DataFrame
-        Clean data.
-    """
-    raw_data["timestamp"] = pd.to_datetime(raw_data["timestamp"]).dt.strftime(
-        "%Y/%m/%d, %H:%M"
-    )
-    raw_data["Sample"] = (
-        raw_data["start_sample"].apply(format_seconds)
-        + "/"
-        + raw_data["video_length"].apply(format_seconds)
-    )
-    clean_data = raw_data.drop(["start_sample", "video_length"], axis=1).rename(
-        columns={
-            "timestamp": "Date",
-            "name": "Song name",
-            "artist": "Artist",
-            "type": "Type",
-            "anime_type": "Anime Type",
-            "vintage": "Vintage",
-            "romaji_title": "Anime",
-            "game_mode": "Mode",
-            "difficulty": "Diff.",
-            "self_answer": "Answer",
-            "guess_time": "Guess time",
-            "ann_id": "ANNID",
-        }
-    )
-    return clean_data
