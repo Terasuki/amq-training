@@ -18,11 +18,11 @@ Tampermonkey should automatically pop up for installation, otherwise manually co
 
 ### Running the server
 
-You will need a valid Python installation, and Node.js to build the UI. The project is tested on Python 3.14.3 and Node.js 24.
+You will need [uv](https://docs.astral.sh/uv/) and Node.js to build the UI. uv downloads and manages the Python interpreter itself (Python 3.15, pinned in `.python-version`). The project is tested on Python 3.15 and Node.js 24.
 
 Install dependencies,
 
-`pip install -r requirements.txt`.
+`uv sync`.
 
 Build the UI,
 
@@ -30,7 +30,7 @@ Build the UI,
 
 Then, from the repository root,
 
-`python app.py`,
+`uv run app.py`,
 
 which starts a Flask development server (receives the data from the userscript and serves the UI).
 
@@ -40,7 +40,7 @@ _Warning: this opens your computer to potential bad actors if they know which po
 
 ### Working on the UI
 
-The UI lives in `frontend/` (React + Vite). With `python app.py` running, start Vite's dev server,
+The UI lives in `frontend/` (React + Vite). With `uv run app.py` running, start Vite's dev server,
 
 `cd frontend && npm run dev`,
 
