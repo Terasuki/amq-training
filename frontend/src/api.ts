@@ -137,7 +137,7 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 /**
- * Computed once per session, like the Dash app did; the Home page's
+ * Computed once per session, like the Dash app did; the nav bar's
  * "Update data" button refetches it.
  */
 export const useDashboard = () =>

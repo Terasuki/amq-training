@@ -40,7 +40,7 @@ export default function SongDetails() {
   const artist = params.get('artist')
 
   return (
-    <Page title="Selected Song">
+    <Page>
       {name === null || artist === null ? (
         <p className="notice">Pick a song from a table on the Home or All Songs page.</p>
       ) : (

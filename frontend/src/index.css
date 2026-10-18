@@ -102,6 +102,10 @@ a:hover {
   color: var(--ink-soft);
 }
 
+.app-nav-update {
+  margin-left: auto;
+}
+
 .page {
   max-width: 1320px;
   margin: 0 auto;
@@ -110,11 +114,6 @@ a:hover {
 
 .page--fluid {
   max-width: none;
-}
-
-.page-title {
-  text-align: center;
-  margin-bottom: 1rem;
 }
 
 .notice {
@@ -186,12 +185,6 @@ a:hover {
 /* --------------------------------------------------------------------- */
 /* Buttons                                                               */
 /* --------------------------------------------------------------------- */
-
-.toolbar {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-}
 
 .btn {
   display: inline-flex;

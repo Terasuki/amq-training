@@ -134,16 +134,10 @@ function DashboardView({ dashboard }: { dashboard: Dashboard }) {
 }
 
 export default function Home() {
-  const { data: dashboard, error, isFetching, refetch } = useDashboard()
+  const { data: dashboard, error, isFetching } = useDashboard()
 
   return (
-    <Page title="Home" fluid>
-      <div className="toolbar">
-        <button type="button" className="btn btn-primary" onClick={() => refetch()} disabled={isFetching}>
-          {isFetching && <span className="spinner spinner--inline" aria-hidden />}
-          Update data
-        </button>
-      </div>
+    <Page fluid>
       {dashboard === undefined ? (
         <LoadStatus error={error} />
       ) : dashboard === null ? (

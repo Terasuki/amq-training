@@ -8,7 +8,7 @@ export default function LastSong() {
   const { data: song, error } = useLastSong()
 
   return (
-    <Page title="Last Song">
+    <Page>
       {song === undefined ? (
         <LoadStatus error={error} />
       ) : song === null ? (

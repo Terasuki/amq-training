@@ -26,7 +26,7 @@ export default function AllSongs() {
   const navigate = useNavigate()
 
   return (
-    <Page title="All songs" fluid>
+    <Page fluid>
       {songs === undefined ? (
         <LoadStatus error={error} />
       ) : (

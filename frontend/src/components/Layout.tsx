@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router'
 
 const PAGES = [
@@ -15,21 +16,42 @@ export function Nav() {
           {label}
         </NavLink>
       ))}
+      <UpdateDataButton />
     </nav>
   )
 }
 
+/** Refetches the queries on screen and marks the rest (e.g. the dashboard) stale. */
+function UpdateDataButton() {
+  const queryClient = useQueryClient()
+  const [updating, setUpdating] = useState(false)
+
+  const update = async () => {
+    setUpdating(true)
+    try {
+      await queryClient.invalidateQueries()
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  return (
+    <button type="button" className="btn btn-primary app-nav-update" onClick={update} disabled={updating}>
+      {updating && <span className="spinner spinner--inline" aria-hidden />}
+      Update data
+    </button>
+  )
+}
+
 interface PageProps {
-  title: string
   /** Use the full window width instead of a centered column. */
   fluid?: boolean
   children: ReactNode
 }
 
-export function Page({ title, fluid = false, children }: PageProps) {
+export function Page({ fluid = false, children }: PageProps) {
   return (
     <main className={fluid ? 'page page--fluid' : 'page'}>
-      <h2 className="page-title">{title}</h2>
       {children}
     </main>
   )
